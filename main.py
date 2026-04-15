@@ -4,12 +4,14 @@ from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 
 from database import init_db
+from jobs.seed import seed as run_seed
 from routers.feed import router as feed_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    run_seed()
     yield
 
 
