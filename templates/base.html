@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}BuilderSignal{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#0F172A',
+            accent:  '#6366F1',
+            border:  '#E2E8F0',
+          },
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#F8FAFC] text-primary font-sans">
+
+  <!-- 顶部固定导航栏 -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm" style="border-bottom: 1px solid transparent; border-image: linear-gradient(to right, #6366F1, #818CF8, #E2E8F0) 1;">
+    <div class="max-w-[760px] mx-auto px-4 h-14 flex items-center justify-between">
+      <a href="/" class="text-lg font-bold tracking-tight" style="background: linear-gradient(135deg, #6366F1, #818CF8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">BuilderSignal</a>
+      <div class="flex items-center gap-6 text-sm">
+        <a href="/" class="text-slate-500 hover:text-[#6366F1] transition-colors font-medium">Feed</a>
+        <a href="/archive" class="text-slate-500 hover:text-[#6366F1] transition-colors font-medium">Archive</a>
+        <a href="/settings" class="text-slate-500 hover:text-[#6366F1] transition-colors font-medium">Settings</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主内容区（顶部留出导航栏高度） -->
+  <main class="max-w-[760px] mx-auto px-4 pt-20 pb-12">
+    {% block content %}{% endblock %}
+  </main>
+
+</body>
+</html>

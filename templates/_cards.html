@@ -1,0 +1,54 @@
+{% set category_styles = {
+  "技术洞察": "bg-[#DBEAFE] text-blue-800",
+  "产品动态": "bg-[#D1FAE5] text-green-800",
+  "行业预判": "bg-[#FEF3C7] text-yellow-800",
+  "工具推荐": "bg-[#F3E8FF] text-purple-800"
+} %}
+
+<!-- 计数（随 HTMX 局部刷新一起更新） -->
+<p class="text-sm text-slate-400 mb-4">共 {{ total }} 条内容</p>
+
+{% if items %}
+  {% for item in items %}
+  <div class="border border-[#E2E8F0] rounded-lg p-5 mb-4">
+    <!-- 卡片头部 -->
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center gap-2">
+        <span class="font-semibold text-[#0F172A]">{{ item.builder_name }}</span>
+        <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-500">{{ item.source }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        {% if item.category_tag %}
+        <span class="text-xs px-2 py-0.5 rounded font-medium {{ category_styles.get(item.category_tag, 'bg-slate-100 text-slate-600') }}">
+          {{ item.category_tag }}
+        </span>
+        {% endif %}
+        <span class="text-xs text-slate-400">{{ item.rel_time }}</span>
+      </div>
+    </div>
+    <!-- 摘要正文 -->
+    <div class="space-y-2 text-sm leading-relaxed text-[#0F172A]">
+      {% if item.summary_en %}
+      <p><span class="font-medium text-slate-400">【EN】</span> {{ item.summary_en }}</p>
+      {% endif %}
+      {% if item.summary_zh %}
+      <p><span class="font-medium text-slate-400">【中】</span> {{ item.summary_zh }}</p>
+      {% endif %}
+    </div>
+    <!-- 原文链接 -->
+    {% if item.original_url and item.original_url != "#" %}
+    <div class="mt-3 pt-3 border-t border-[#E2E8F0]">
+      <a href="{{ item.original_url }}" target="_blank" rel="noopener"
+         class="text-xs text-slate-400 hover:text-[#6366F1] transition-colors">
+        查看原文 →
+      </a>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="text-center py-16 text-slate-400">
+    <p class="text-lg">今日暂无内容</p>
+    <p class="text-sm mt-1">内容将在每天北京时间 15:00 后更新</p>
+  </div>
+{% endif %}
