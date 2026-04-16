@@ -135,7 +135,8 @@ async def feed(request: Request, category: str = ""):
 
 @router.get("/api/status")
 async def api_status():
-    today_start = _today_start_utc()
+    now_utc8 = datetime.now(TZ8)
+    today_start, today_end = _day_range_utc(now_utc8)
     with get_session() as session:
         last_rc = (
             session.query(RawContent)
@@ -149,13 +150,23 @@ async def api_status():
         total_summaries = session.query(Summary).filter_by(is_visible=1).count()
         today_summaries = (
             session.query(Summary)
-            .filter(Summary.created_at >= today_start, Summary.is_visible == 1)
+            .filter(Summary.created_at >= today_start, Summary.created_at < today_end, Summary.is_visible == 1)
             .count()
         )
+        latest = (
+            session.query(Summary.created_at)
+            .filter(Summary.is_visible == 1)
+            .order_by(Summary.created_at.desc())
+            .first()
+        )
+        latest_created = latest[0].strftime("%Y-%m-%d %H:%M:%S UTC") if latest else None
     return JSONResponse({
         "last_fetch_time": last_fetch_time,
         "total_summaries": total_summaries,
         "today_summaries": today_summaries,
+        "latest_summary_created_at": latest_created,
+        "now_utc": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "now_beijing": now_utc8.strftime("%Y-%m-%d %H:%M:%S +08"),
     })
 
 
