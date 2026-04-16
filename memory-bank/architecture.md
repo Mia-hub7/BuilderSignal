@@ -4,6 +4,7 @@
 | 版本 | 日期 | 变更 |
 | :--- | :--- | :--- |
 | v1.0 | 2026-04-15 | 初始架构（基于步骤1完成后的项目骨架） |
+| v1.1 | 2026-04-16 | 存储层迁移至 Supabase PostgreSQL；新增 Archive 页；bio 字段上线 |
 
 ---
 
@@ -17,17 +18,18 @@ BuilderSignal 由三个独立运行的部分组成，均部署在 Render 上：
 │                                                              │
 │  ┌─────────────────┐   ┌──────────────────────────────────┐  │
 │  │  Web Service    │   │         Cron Jobs (2个)           │  │
-│  │  FastAPI        │   │  fetch.py    → 每天UTC 07:00      │  │
+│  │  FastAPI        │   │  fetch.py    → 每天UTC 22:00      │  │
 │  │  用户访问 Dashboard  │  cleanup.py  → 每天UTC 18:00      │  │
 │  └────────┬────────┘   └──────────────┬───────────────────┘  │
-│           │                           │                      │
+│           │                           │ POST /api/trigger-fetch
 │           └──────────┬────────────────┘                      │
-│                      ▼                                       │
-│            ┌─────────────────┐                               │
-│            │  SQLite + Disk  │                               │
-│            │  (持久化存储)    │                               │
-│            └─────────────────┘                               │
-└──────────────────────────────────────────────────────────────┘
+└──────────────────────┼───────────────────────────────────────┘
+                       ▼
+            ┌─────────────────────┐
+            │  Supabase PostgreSQL │
+            │  (免费，持久化存储)   │
+            │  Session Pooler      │
+            └─────────────────────┘
           ▲                        ▲
     用户浏览器              follow-builders 公开 Feed
                         (GitHub raw JSON，每天UTC 06:00更新)
@@ -54,8 +56,8 @@ follow-builders GitHub Feed（每日UTC 06:00更新）
                                       ▼
                             processor/summarizer.py
                             → claude_client.py
-                            → Claude API (claude-sonnet-4-6)
-                            → Prompt Caching 启用
+                            → 豆包 API（火山引擎 ARK，OpenAI 兼容协议）
+                            → deepseek-chat 模型
                                       │
                                       ▼
                                summaries 表
@@ -110,8 +112,7 @@ BuilderSignal/
 ├── static/
 │   └── css/             # 预留静态资源目录（TailwindCSS 使用 CDN，此目录暂为空）
 │
-├── data/
-│   └── buildersignal.db # SQLite 数据库文件（Render Disk 挂载路径，git 忽略）
+├── data/                # 本地开发用 SQLite 目录（生产使用 Supabase PostgreSQL）
 │
 ├── memory-bank/         # 项目规划与进度文档（非运行代码）
 ├── Dockerfile           # 生产镜像（python:3.11-slim）
@@ -150,9 +151,9 @@ config（key-value）
 | 服务 | 用途 | 费用 | 备注 |
 | :--- | :--- | :--- | :--- |
 | follow-builders Feed | 原始内容来源（X/播客/博客） | 免费 | GitHub raw，每日UTC 06:00更新 |
-| Claude API (claude-sonnet-4-6) | 双语摘要 + 分类打标 | 按token计费 | Prompt Cache 可降低90%成本 |
+| 豆包 API（火山引擎 ARK） | 双语摘要 + 分类打标 | 按token计费 | OpenAI 兼容协议，deepseek-chat 模型 |
 | Render Web Service | 托管 FastAPI 应用 | Starter $7/月 | Free套餐会休眠，影响Cron Job |
-| Render Disk | SQLite 文件持久化 | $1/月起 | 挂载至 /app/data |
+| Supabase PostgreSQL | 持久化存储（替代 SQLite+Disk） | 免费套餐 | Session Pooler 解决 Render IPv6 问题 |
 | Render Cron Job | 定时触发 fetch/cleanup | 免费 | 独立进程，不依赖Web Service |
 
 ---
@@ -164,7 +165,7 @@ config（key-value）
 | 使用 follow-builders 公开 Feed | 无需 X API Key，零成本获取25个Builder的推文 |
 | Render Cron Job 替代 APScheduler | 独立进程，Render休眠不影响定时任务 |
 | HTMX 替代 React/Vue | 个人工具，服务端渲染够用，无需构建流程 |
-| SQLite 替代 PostgreSQL | 单用户无并发写入，零运维 |
+| Supabase PostgreSQL 替代 SQLite+Disk | Render 免费套餐不支持 Disk，SQLite 每次部署被清空；Supabase 免费套餐提供持久化 PostgreSQL |
 | Prompt Caching | 系统提示重复调用，缓存命中率高，降低API成本 |
 | requirements.txt 不含中文注释 | Windows pip 默认GBK编码，中文注释导致UnicodeDecodeError |
 
@@ -175,3 +176,4 @@ config（key-value）
 | 日期 | 版本 | 变更内容 |
 | :--- | :--- | :--- |
 | 2026-04-15 | v1.0 | 初始架构，完成项目骨架（步骤1），确立 follow-builders Feed 方案 |
+| 2026-04-16 | v1.1 | 存储层从 SQLite+Render Disk 迁移至 Supabase PostgreSQL（免费，Session Pooler 解决 IPv6）；新增 Archive 页；builders 表新增 bio 字段；Render 部署上线 |

@@ -205,7 +205,56 @@
 
 ---
 
+### 数据库迁移至 Supabase PostgreSQL
+**日期：** 2026-04-16
+**状态：** ✅ 完成
+
+**完成内容：**
+- Render 免费套餐不支持 Disk，SQLite 每次部署被清空
+- 接入 Supabase 免费 PostgreSQL，`DATABASE_URL` 环境变量注入
+- `database.py` 支持 `DATABASE_URL` 优先（PostgreSQL），无则回退 SQLite
+- 使用 Supabase Session Pooler（port 5432，host: `aws-1-ap-southeast-1.pooler.supabase.com`）
+  解决 Render 免费套餐无法连接 Supabase 直连地址（IPv6 不兼容）
+- `requirements.txt` 添加 `psycopg2-binary==2.9.9`
+- `inspect(engine).get_columns()` 替代 SQLite PRAGMA 做 bio 字段迁移（兼容 PostgreSQL）
+
+---
+
 ## 待完成
 
-- [ ] Phase 2：Settings 页（`/settings`）— 配置管理
-- [ ] Phase 3：RAG 知识库、YouTube 接入
+### Phase 2 — Step 1：Archive 关键词搜索
+**日期：** 2026-04-16
+**状态：** ✅ 完成
+
+- [x] `archive.py` 增加 `keyword` 查询参数
+- [x] SQL 查询加 `summary_zh / summary_en LIKE %keyword%` 条件（`ilike` 兼容 PostgreSQL）
+- [x] 搜索时跨所有日期查询，不限单日，最多返回 100 条
+- [x] `archive.html` 加搜索框 + 清除按钮，搜索模式下隐藏日期选择器
+
+### Phase 2 — Step 2：Settings 页
+**日期：** 2026-04-16
+**状态：** ✅ 完成
+
+- [x] `routers/settings.py` 实现 `GET /settings`（展示 builder 列表）
+- [x] `POST /settings/builder/add` — 新增 builder，重复时返回错误提示
+- [x] `POST /settings/builder/toggle` — 启用/禁用 builder
+- [x] `POST /settings/builder/delete` — 删除用户自定义 builder（默认 builder 不可删）
+- [x] `templates/settings.html` — 白名单表格 UI，含类别标签、handle、bio
+- [x] 操作后显示成功/失败 toast，3秒后自动淡出
+- [x] 导航栏 Settings 链接激活
+
+### Phase 2 — Step 3：YouTube / Podcast 转录
+**日期：** 2026-04-16
+**状态：** ✅ 完成
+
+- [x] 注册 Supadata API，获取 API Key（免费 100 credits/月）
+- [x] `scrapers/supadata_client.py` — 封装 Supadata `/youtube/transcript` 接口
+- [x] `feed_fetcher.py` — 播客条目 transcript 为空且 URL 为 YouTube 时自动调用转录
+- [x] `config.py` 新增 `SUPADATA_API_KEY` 环境变量
+- [x] Render 和本地 `.env` 均已配置 API Key
+
+### Phase 3
+
+- [ ] RAG 知识库（基于 Builder 历史观点）
+- [ ] 自然语言问答（"Karpathy 去年对 RAG 的看法？"）
+- [ ] 观点碰撞专题聚合

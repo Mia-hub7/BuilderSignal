@@ -3,6 +3,7 @@
 | 版本 | 状态 | 修订日期 | 负责人 |
 | :--- | :--- | :--- | :--- |
 | v1.1 | 草案 | 2026-04-15 | AI PM |
+| v1.2 | 已更新 | 2026-04-16 | AI PM |
 
 ---
 
@@ -37,55 +38,53 @@
 
 ### 4.1 动态白名单系统 (Smart Whitelist)
 
-* **内置白名单**：系统预置约 25 位核心 AI Builder（见第 5 节）。
-* **用户自定义扩展**：用户可在 Web Dashboard 中添加白名单以外的任意账号。
+* **内置白名单**：系统预置 33 位核心 AI Builder（25个X账号 + 6个播客 + 2个博客）。
+* **用户自定义扩展**：用户可在 Settings 页面添加/禁用/删除 Builder。
 * **准入标准参考**：顶级 AI 公司创始人、核心工程师、研究员，或具有公认原创能力的 Builder。
-* **验收标准**：用户可在 Dashboard 增删账号，变更实时生效，下次抓取周期自动纳入。
+* **验收标准**：✅ 用户可在 Dashboard 增删账号，变更实时生效，下次抓取周期自动纳入。
 
 ### 4.2 全渠道内容抓取 (Multi-source Ingestion)
 
-| 渠道 | 方案 | MVP 阶段 |
+| 渠道 | 方案 | 状态 |
 | :--- | :--- | :--- |
-| X (Twitter) | 官方 X API Free Tier（月 500 条），后续按需升级 | ✅ |
-| 企业/个人博客 | RSS 订阅 + HTTP 爬虫（遵守 robots.txt） | ✅ |
-| YouTube / Podcast | Supadata API 转录 | Phase 2 |
+| X (Twitter) | follow-builders 公开 GitHub Feed（无需 X API Key） | ✅ |
+| 企业/个人博客 | follow-builders 公开 GitHub Feed（blog JSON） | ✅ |
+| YouTube / Podcast | follow-builders Feed + Supadata API 转录（transcript 为空时补充） | ✅ |
 
-* **抓取频率**：每 4 小时扫描一次。
-* **去重逻辑**：基于内容 ID 或 URL hash，避免重复推送。
+* **数据来源**：消费 [follow-builders](https://github.com/zarazhangrui/follow-builders) 公开 JSON Feed，每日 UTC 06:00 更新。
+* **抓取频率**：每天一次（Render Cron Job，UTC 22:00 / 北京时间 06:00）。
+* **去重逻辑**：基于 content_id（SHA-256 hash），避免重复入库。
 
 ### 4.3 AI 驱动内容处理 (AI Processing)
 
-* **LLM**：Claude API（claude-sonnet-4-6）
-* **反网红过滤器**：LLM 自动识别并剔除营销号特征内容（转发抽奖、10图带你看懂等）。
+* **LLM**：豆包 API（火山引擎 ARK，deepseek-chat 模型，OpenAI 兼容协议）
+* **内容策略**：白名单内所有内容直接入库，不做 LLM 过滤（Track the Builders 原则）
 * **分类标签**：每条内容自动打标，支持以下类别过滤：
   * `技术洞察` — 算法、架构、工程实现
   * `产品动态` — 新功能、产品发布、路线图
   * `行业预判` — 对未来趋势的观点与预测
   * `工具推荐` — Builder 提到的工具、库、服务
-  * `生活碎碎念` — 非技术内容（默认过滤）
 * **结构化摘要（双语）**：
-  * **核心观点**（中/英）：Builder 表达了什么新见解？
-  * **技术/产品动态**（中/英）：他们正在造什么？
-  * **行业预判**（中/英）：对未来的碎片化预测。
-  * **原文链接**：每条摘要必须附带原文跳转链接。
-* **验收标准**：摘要输出为中英双语，英文为原文提炼，中文为对应翻译，格式为 Markdown。
+  * **中文摘要**：2-4句，提炼核心观点
+  * **英文摘要**：2-4 sentences, extracting key insights
+  * **原文链接**：每条摘要附带原文跳转链接
+* **验收标准**：✅ 摘要输出为中英双语，含分类标签和原文链接
 
 ### 4.4 Web Dashboard
 
-* **技术栈**：Python 后端（FastAPI）+ 轻量前端（HTML/JS 或 Streamlit）
+* **技术栈**：FastAPI + Jinja2 + TailwindCSS CDN + HTMX
 * **核心页面**：
-  * **首页 Feed**：按时间倒序展示摘要卡片，支持按类别筛选。
-  * **白名单管理**：增删追踪账号，设置每人的关注类别。
-  * **推送设置**：配置每日摘要推送时间（默认 08:00）。
-  * **历史归档**：按日期浏览历史摘要，支持关键词搜索。
-* **验收标准**：可在浏览器中访问，响应时间 < 3s，移动端可阅读。
+  * **Feed 首页** ✅：展示最新摘要卡片，支持分类筛选，无数据时自动回退到最近一次内容
+  * **Archive 归档页** ✅：按日期浏览历史摘要，支持关键词搜索（摘要内容 + Builder 名字）
+  * **Settings 页** ✅：Builder 白名单管理（增删启禁），操作成功/失败 toast 提示
+* **验收标准**：✅ 可在浏览器访问，响应时间 < 3s，移动端可阅读
 
-### 4.5 自动化定时推送 (Scheduled Delivery)
+### 4.5 自动化定时任务 (Scheduled Jobs)
 
-* **推送形式**：每日定时生成 Markdown 摘要报告，在 Web Dashboard 首页置顶展示。
-* **推送时间**：用户可在 Dashboard 自定义（精确到小时），默认每日 08:00。
-* **推送频率**：支持每日简报（Daily Digest）或每周复盘（Weekly Review）。
-* **验收标准**：定时任务准时触发，误差 < 5 分钟；推送失败时记录日志并在下次启动时重试。
+* **抓取任务**：每天 UTC 22:00（北京 06:00）自动触发，确保早上 09:00 有当日内容
+* **清理任务**：每天 UTC 18:00（北京 02:00）清理 30 天前的历史数据
+* **手动触发**：`POST /api/trigger-fetch` 支持手动触发完整抓取流程
+* **注**：Daily Digest 置顶推送功能尚未实现，列入 Phase 3
 
 ---
 
@@ -105,16 +104,24 @@
 | | Aaron Levie | Box CEO |
 | | Garry Tan | YC CEO |
 | **硬核 Builder / 极客** | Ryo Lu | Cursor 设计负责人 |
-| | Peter Steinberger | OpenClaw 创始人 |
+| | Peter Steinberger | PSPDFKit 创始人 |
 | | Nan Yu / Madhu Guru | AI Builders |
 | | Cat Wu / Thariq | AI Builders |
 | | Nikunj Kothari | AI Builder |
-| **行业布道与观察** | Swyx (Shawn Wang) | Latent Space |
+| **行业布道与观察** | Swyx (Shawn Wang) | Latent Space 联创 |
 | | Dan Shipper | Every.to CEO |
 | | Peter Yang | AI 产品 Creator |
-| | Matt Turck | FirstMark (MAD Landscape) |
+| | Matt Turck | FirstMark Capital 合伙人 |
 | | Aditya Agarwal | 前 Dropbox CTO |
-| | Zara Zhang | 前字节跳动产品经理 |
+| | Zara Zhang | GGV Capital 投资人 |
+| **播客** | Latent Space | AI 播客 |
+| | Training Data | AI 播客 |
+| | No Priors | AI 播客 |
+| | Unsupervised Learning | AI 播客 |
+| | The MAD Podcast | Matt Turck 主持 |
+| | AI & I by Every | Dan Shipper 主持 |
+| **博客** | Anthropic Engineering | Anthropic 技术博客 |
+| | Claude Blog | Anthropic 官方博客 |
 
 ---
 
@@ -122,20 +129,20 @@
 
 ```
 [配置阶段]
-用户访问 Dashboard → 确认/编辑白名单 → 设置推送时间与类别偏好
+用户访问 Settings → 确认/编辑白名单
 
-[后台运行 - 每4小时]
-定时任务触发
-  → 抓取 X API / RSS / 博客内容
-  → 去重过滤（基于 URL hash）
-  → Claude API 处理：分类打标 + 去噪 + 双语摘要生成
-  → 存入数据库（SQLite / PostgreSQL）
-
-[定时推送 - 每日08:00（可配置）]
-聚合当日内容 → 生成 Daily Digest Markdown → 更新 Dashboard 首页置顶
+[后台运行 - 每天 UTC 22:00]
+Cron Job 触发
+  → POST /api/trigger-fetch → Web Service 后台异步执行
+  → 拉取 follow-builders GitHub Feed（x / podcast / blog）
+  → 去重过滤（content_id SHA-256 hash）
+  → 豆包 API 处理：分类打标 + 双语摘要生成
+  → 存入 Supabase PostgreSQL
 
 [用户交互]
-用户打开浏览器 → 查看摘要卡片 → 按类别筛选 → 点击原文链接溯源
+用户打开浏览器 → Feed 查看当日摘要 → 分类筛选
+                → Archive 查看历史 / 关键词搜索
+                → 点击原文链接溯源
 ```
 
 ---
@@ -146,39 +153,39 @@
 
 | 层级 | 技术 |
 | :--- | :--- |
-| 后端语言 | Python 3.11+ |
+| 后端语言 | Python 3.11 |
 | Web 框架 | FastAPI |
-| 前端 | Jinja2 模板 + TailwindCSS（或 Streamlit 快速原型） |
-| LLM | Claude API (claude-sonnet-4-6) |
-| 数据库 | SQLite（MVP）→ PostgreSQL（生产） |
-| 定时任务 | APScheduler 或 Celery Beat |
-| X API | Tweepy（官方 X API Free Tier） |
-| YouTube 转录 | Supadata API（Phase 2） |
-| 博客抓取 | feedparser（RSS）+ httpx + BeautifulSoup |
-| 部署 | Railway / Render / Fly.io |
-| 容器化 | Docker + docker-compose |
+| 前端 | Jinja2 模板 + TailwindCSS CDN + HTMX |
+| LLM | 豆包 API（火山引擎 ARK，deepseek-chat） |
+| 数据库 | Supabase PostgreSQL（免费套餐，Session Pooler） |
+| 定时任务 | Render Cron Job（独立进程，不依赖 Web Service） |
+| 数据来源 | follow-builders 公开 GitHub Feed |
+| YouTube 转录 | Supadata API（transcript 为空时补充） |
+| 部署 | Render（Web Service + 2个 Cron Job） |
 
 ### 数据流
 
 ```
-数据源（X / RSS / Blog）
-    ↓ 抓取层（Scrapers）
+follow-builders GitHub Feed（每日 UTC 06:00 更新）
+  feed-x.json / feed-podcasts.json / feed-blogs.json
+    ↓ scrapers/feed_fetcher.py（去重 + Supadata 转录补充）
 原始内容存储（raw_content 表）
-    ↓ 处理层（Claude API）
+    ↓ processor/summarizer.py → 豆包 API
 结构化摘要存储（summaries 表）
-    ↓ 展示层（FastAPI + Web UI）
-用户 Dashboard
+    ↓ routers/ + Jinja2 模板
+用户浏览器（Feed / Archive / Settings）
 ```
 
 ---
 
 ## 8. 关键约束与假设 (Constraints & Assumptions)
 
-* **X API 限制**：Free Tier 月读取上限 500 条，MVP 阶段够用（25人 × 每4小时 ≈ 150条/天），后续流量增大再升级。
-* **合规性**：摘要生成属"合理使用"，每条内容必须保留原文链接；爬虫遵守 robots.txt。
-* **语言处理**：LLM 负责将英文原文提炼为双语摘要，无需额外翻译 API。
-* **数据质量假设**：Claude 能准确区分 Builder 的"技术观点"与"生活内容"，分类准确率预期 > 85%。
-* **单用户假设**：无需多租户、权限管理等复杂逻辑，配置直接写入本地配置文件或环境变量。
+* **数据来源**：依赖 follow-builders 公开 Feed，内容质量和更新频率由该项目决定。
+* **内容策略**：不做内容过滤，白名单内所有 Builder 的内容均入库，由用户自行判断价值。
+* **LLM 成本**：豆包 API 按 token 计费，每日约 37 条内容，成本极低。
+* **Supadata 额度**：免费套餐 100 credits/月，够个人使用（约 30 次/月）。
+* **合规性**：摘要生成属"合理使用"，每条内容保留原文链接；不存储完整原文。
+* **单用户假设**：无需多租户、权限管理等复杂逻辑。
 
 ---
 
@@ -188,9 +195,8 @@
 
 | 指标 | 目标 |
 | :--- | :--- |
-| 每日 Digest 准时生成率 | ≥ 95% |
+| 每日内容准时更新率 | ≥ 95% |
 | 摘要双语质量（主观评分） | ≥ 4/5 分 |
-| 反网红过滤准确率 | 营销内容漏出 < 10% |
 | 原文链接有效率 | ≥ 98% |
 | Dashboard 页面加载时间 | < 3s |
 
@@ -198,25 +204,24 @@
 
 ## 10. 路线图 (Roadmap)
 
-### Phase 1 — MVP（目标：跑通核心链路）
+### Phase 1 — MVP ✅ 已完成
 
-- [ ] X API 抓取模块（Tweepy）
-- [ ] RSS / 博客爬虫模块
-- [ ] Claude API 摘要生成（双语 + 分类打标）
-- [ ] SQLite 数据存储
-- [ ] FastAPI 基础 Web Dashboard（Feed 列表 + 类别筛选）
-- [ ] APScheduler 定时任务（每4小时抓取 + 每日推送）
-- [ ] Railway/Render 云端部署
+- [x] follow-builders Feed 抓取（X / Podcast / Blog）
+- [x] 豆包 API 摘要生成（双语 + 分类打标）
+- [x] Supabase PostgreSQL 数据存储
+- [x] FastAPI Web Dashboard（Feed + 分类筛选）
+- [x] Render 部署（Web Service + 2个 Cron Job）
 
-### Phase 2 — 深度内容
+### Phase 2 — 深度内容 ✅ 已完成
 
-- [ ] Supadata API 接入（YouTube / Podcast 转录）
-- [ ] 白名单管理 UI（Dashboard 内增删账号）
-- [ ] 推送时间自定义设置
-- [ ] 历史归档与关键词搜索
+- [x] Supadata API 接入（YouTube transcript 补充）
+- [x] Settings 页白名单管理 UI
+- [x] Archive 历史归档页（日期选择 + 关键词搜索）
 
-### Phase 3 — 知识库
+### Phase 3 — 知识库（待开发）
 
 - [ ] 基于 Builder 历史观点构建 RAG 知识库
 - [ ] 支持自然语言提问（如："Karpathy 去年对 RAG 的看法？"）
 - [ ] "观点碰撞"专题（两个 Builder 产生讨论时自动聚合）
+- [ ] Daily Digest 每日置顶推送
+- [ ] Prompt 调优迭代（分类准确率提升、摘要质量优化）
