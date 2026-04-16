@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 
 from database import get_session, Builder, RawContent
 from scrapers.base_scraper import generate_content_id, is_duplicate
+from scrapers.supadata_client import get_youtube_transcript, is_youtube_url
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -86,6 +87,10 @@ def _process_podcasts(data: dict, session) -> int:
         builder_id = _get_builder_id_by_name(name, "podcast", session)
         title = pod.get("title", "")
         transcript = pod.get("transcript", "")
+        # If transcript is missing and URL is YouTube, fetch via Supadata
+        if not transcript and is_youtube_url(url):
+            log.info(f"Fetching YouTube transcript for: {url}")
+            transcript = get_youtube_transcript(url)
         raw_text = f"{title}\n\n{transcript}".strip()
         session.add(RawContent(
             builder_id=builder_id,
