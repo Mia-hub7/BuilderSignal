@@ -8,7 +8,7 @@ def utcnow():
 
 from sqlalchemy import (
     Boolean, Column, DateTime, Integer, String, Text,
-    ForeignKey, create_engine, text
+    ForeignKey, create_engine, text, inspect
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -80,12 +80,14 @@ class Config(Base):
 
 def init_db():
     Base.metadata.create_all(bind=engine)
-    # Safe migration: add bio column if not exists
-    with engine.connect() as conn:
-        cols = [row[1] for row in conn.execute(text("PRAGMA table_info(builders)"))]
+    # Safe migration: add bio column if not exists (works for SQLite and PostgreSQL)
+    inspector = inspect(engine)
+    if "builders" in inspector.get_table_names():
+        cols = [c["name"] for c in inspector.get_columns("builders")]
         if "bio" not in cols:
-            conn.execute(text("ALTER TABLE builders ADD COLUMN bio TEXT"))
-            conn.commit()
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE builders ADD COLUMN bio TEXT"))
+                conn.commit()
 
 
 @contextmanager
