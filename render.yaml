@@ -3,6 +3,7 @@ services:
   - type: web
     name: buildersignal
     runtime: python
+    pythonVersion: "3.11"
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     disk:
@@ -25,6 +26,7 @@ services:
   - type: cron
     name: buildersignal-fetch
     runtime: python
+    pythonVersion: "3.11"
     buildCommand: pip install -r requirements.txt
     schedule: "0 22 * * *"
     command: python jobs/fetch.py
@@ -44,6 +46,7 @@ services:
   - type: cron
     name: buildersignal-cleanup
     runtime: python
+    pythonVersion: "3.11"
     buildCommand: pip install -r requirements.txt
     schedule: "0 18 * * *"
     command: python jobs/cleanup.py
