@@ -27,13 +27,15 @@ def run_summarizer() -> dict:
 
         for record in pending:
             builder_name = "Unknown"
+            builder_bio = ""
             if record.builder_id:
                 builder = session.query(Builder).filter_by(id=record.builder_id).first()
                 if builder:
                     builder_name = builder.name
+                    builder_bio = builder.bio or ""
 
             try:
-                result = call_llm(builder_name, record.source, record.raw_text or "")
+                result = call_llm(builder_name, record.source, record.raw_text or "", builder_bio)
             except Exception as e:
                 log.error(f"LLM call failed for raw_content id={record.id}: {e}")
                 failed += 1
