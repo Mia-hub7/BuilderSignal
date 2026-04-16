@@ -9,7 +9,7 @@ from processor.claude_client import call_llm
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
-BATCH_SIZE = 20
+BATCH_SIZE = 100
 
 
 def run_summarizer() -> dict:
