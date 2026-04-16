@@ -12,14 +12,12 @@
 - 创建所有目录：`scrapers/`、`processor/`、`jobs/`、`routers/`、`templates/`、`static/css/`、`data/`
 - 创建各目录下的 `__init__.py`
 - 创建根目录空文件：`main.py`、`config.py`、`database.py`
-- 创建 `.env.example`、`.gitignore`、`requirements.txt`（纯 ASCII，兼容 Windows pip）
+- 创建 `.env.example`（4个环境变量：`ANTHROPIC_API_KEY`、`DATABASE_PATH`、`TZ`、`FEED_FETCH_HOUR`）
+- 创建 `.gitignore`（忽略 `.env`、`data/`、`__pycache__/`、`.venv/`）
+- 创建 `requirements.txt`（11个依赖包，移除中文注释以兼容 Windows GBK 编码）
 
 **遇到的问题：**
-- `requirements.txt` 中文注释导致 Windows pip `UnicodeDecodeError (GBK)`，解决：移除所有中文注释
-
-**验证结果：**
-- `pip install -r requirements.txt` ✅
-- `python -c "import fastapi, sqlalchemy, httpx, bs4, dotenv"` ✅
+- `requirements.txt` 中的中文注释导致 Windows 上 pip 报 `UnicodeDecodeError (GBK)`，解决方案：移除所有中文注释，`requirements.txt` 只保留纯 ASCII 内容
 
 ---
 
@@ -28,12 +26,9 @@
 **状态：** ✅ 验证通过
 
 **完成内容：**
-- 用 `python-dotenv` 加载 `.env`，暴露模块级常量
-- `LLM_API_KEY` 缺失时抛出 `ValueError`，其余项有缺省值
-
-**验证结果：**
-- 常量值正确读取 ✅
-- 缺少 Key 时抛出明确报错 ✅
+- 用 `python-dotenv` 加载 `.env` 文件
+- 暴露4个模块级常量：`ANTHROPIC_API_KEY`、`DATABASE_PATH`、`TZ`、`FEED_FETCH_HOUR`
+- `ANTHROPIC_API_KEY` 缺失时主动抛出 `ValueError`，其余三项有缺省值
 
 ---
 
@@ -42,12 +37,10 @@
 **状态：** ✅ 验证通过
 
 **完成内容：**
-- 定义4张表 ORM 模型：`Builder`、`RawContent`、`Summary`、`Config`
-- 实现 `init_db()`、`get_session()`
-
-**验证结果：**
-- 4张表创建成功，字段与设计文档一致 ✅
-- 重复运行不报错 ✅
+- 用 SQLAlchemy 2.0 定义4张表的 ORM 模型：`Builder`、`RawContent`、`Summary`、`Config`
+- 实现 `init_db()`：首次运行自动建表，已存在则跳过
+- 实现 `get_session()`：context manager，自动 commit/rollback/close
+- `builders` 表新增 `bio` 字段（2026-04-16），存储 Builder 的公司/身份信息
 
 ---
 
@@ -56,12 +49,10 @@
 **状态：** ✅ 验证通过
 
 **完成内容：**
-- 写入33条初始记录：25个X账号 + 6个播客 + 2个博客
-- 幂等：重复运行不重复插入
-
-**验证结果：**
-- 33条记录写入成功 ✅
-- 重复运行无重复插入 ✅
+- 写入33条初始记录：25个X账号 + 6个播客节目 + 2个官方博客
+- 每个 X 账号补充 `bio` 身份信息（2026-04-16）
+- X账号以 `handle` 为唯一键去重，播客/博客以 `name+category` 为唯一键去重
+- 脚本幂等：重复运行输出 `0 inserted, 33 skipped`
 
 ---
 
@@ -70,15 +61,13 @@
 **状态：** ✅ 验证通过
 
 **完成内容：**
-- `lifespan` 启动时调用 `init_db()`
-- 挂载 `/static`，注册 Jinja2，注册 feed 路由
+- 用 `lifespan` 异步上下文管理器在启动时调用 `init_db()`
+- 挂载 `/static` 静态文件目录
+- 注册 Jinja2 模板引擎（`templates/`）
+- 注册 feed_router 和 archive_router
 
 **遇到的问题：**
-- 本机代理拦截 httpx/curl，改用 raw socket 验证
-
-**验证结果：**
-- `GET /` 返回 200 OK ✅
-- `GET /docs` 正常加载 ✅
+- 本机有网络代理，httpx/curl 请求被拦截返回 502；改用 raw socket 直连验证
 
 ---
 
@@ -87,26 +76,19 @@
 **状态：** ✅ 验证通过
 
 **完成内容：**
-- `generate_content_id()`：SHA-256 hash
-- `is_duplicate()`：查询 `raw_content` 表
-
-**验证结果：**
-- 同一输入 hash 一致，不同输入不同 ✅
-- 插入前 False，插入后 True ✅
+- `generate_content_id(unique_str)`：SHA-256 hash，返回64位十六进制字符串
+- `is_duplicate(content_id, session)`：查询 `raw_content` 表，存在返回 `True`
 
 ---
 
-### 步骤 7 — scrapers/feed_fetcher.py Feed 拉取
+### 步骤 7 — scrapers/feed_fetcher.py follow-builders Feed 拉取
 **日期：** 2026-04-15
 **状态：** ✅ 验证通过
 
 **完成内容：**
 - 拉取3个 GitHub raw JSON Feed（x / podcast / blog）
-- 去重后写入 `raw_content` 表
-
-**验证结果：**
-- 首次运行写入34条新记录（x:32, podcast:1, blog:1）✅
-- 重复运行去重生效 ✅
+- X推文以 `tweet.id` 为 content_id，播客以 `guid`，博客以 `url`
+- 任意 Feed 失败时记录错误并跳过，不中断整体流程
 
 ---
 
@@ -115,15 +97,12 @@
 **状态：** ✅ 验证通过
 
 **完成内容：**
-- 改用豆包（火山引擎 ARK）API，OpenAI SDK 兼容接入
-- 实现 `call_llm()`，返回 `{skip, category, summary_zh, summary_en}`
-- `httpx.Client(trust_env=False)` 绕过本机代理
+- 改用豆包（火山引擎 ARK）API，协议兼容 OpenAI SDK
+- 实现 `call_llm(builder_name, source, raw_text) -> dict`
+- 传入 `httpx.Client(trust_env=False)` 绕过本机代理
 
 **遇到的问题：**
 - 本机代理导致 SSL 握手失败，解决：`trust_env=False`
-
-**验证结果：**
-- 有价值内容返回摘要 ✅，无价值内容返回 skip:true ✅
 
 ---
 
@@ -132,11 +111,8 @@
 **状态：** ✅ 验证通过
 
 **完成内容：**
-- `run_summarizer()`：每批20条，调用 LLM，写入 summaries 表
-- skip=true → is_processed=2，skip=false → is_processed=1
-
-**验证结果：**
-- 摘要中英文均不为空 ✅，分类覆盖四类 ✅，failed=0 ✅
+- 实现 `run_summarizer()`：每批最多20条，读取 `is_processed=0` 的记录
+- `skip=true` 时更新为 2，`skip=false` 时写入 `summaries` 并更新为 1
 
 ---
 
@@ -145,11 +121,8 @@
 **状态：** ✅ 验证通过
 
 **完成内容：**
-- `run_fetch()`：串联 `fetch_all_feeds()` → `run_summarizer()`
-- 每阶段打印带 UTC 时间戳日志
-
-**验证结果：**
-- 两阶段顺序完成 ✅，raw_content 34条、summaries 24条 ✅
+- 实现 `run_fetch()`：依次调用 `fetch_all_feeds()` → `run_summarizer()`
+- 每阶段打印带 UTC 时间戳的日志
 
 ---
 
@@ -158,29 +131,26 @@
 **状态：** ✅ 验证通过
 
 **完成内容：**
-- 引入 TailwindCSS CDN + HTMX CDN
-- 顶部固定导航栏：Logo + Feed / Archive / Settings
-- 背景色 `#F8FAFC`（冷灰白，科技感）
-
-**验证结果：**
-- 导航栏正常显示 ✅，375px 无横向滚动条 ✅
+- 顶部固定导航栏（Feed / Archive / Settings）
+- 导航栏支持当前页高亮（`active_nav` 变量控制）
+- TailwindCSS CDN + HTMX CDN 引入
 
 ---
 
 ### 步骤 12 — Feed 首页
-**日期：** 2026-04-15
+**日期：** 2026-04-15 / 迭代至 2026-04-16
 **状态：** ✅ 验证通过
 
 **完成内容：**
-- `routers/feed.py`：查询今日摘要，支持分类过滤
-- `templates/feed.html`：标题"今日 AI 动态"、分类 Tab、摘要卡片、空状态
-- Tab 用 `<a href>` 全页刷新（HTMX 因代理问题移除）
+- 分类筛选 Tab（全部 / 技术洞察 / 产品动态 / 行业预判 / 工具推荐）
+- 卡片展示：平台图标、Builder 名字、身份 bio、分类标签、时间戳、中英摘要、原文链接
+- 标题显示当天北京日期
+- 今天无数据时自动回退显示最近一次抓取内容（以昨天为优先）
+- 今天确实无内容时展示"查看历史资讯"按钮跳转 Archive
 
-**遇到的问题：**
-- HTMX CDN 被代理拦截，Tab 局部刷新失效；改为全页刷新
-
-**验证结果：**
-- 24条摘要正常显示 ✅，Tab 切换高亮正确 ✅，计数更新 ✅
+**产品设计迭代：**
+- 原设计仅显示当天内容，导致早上打开页面为空 → 改为智能回退
+- Cron Job 执行时间从 UTC 07:00 改为 UTC 22:00（北京 06:00），确保早上 09:00 有内容
 
 ---
 
@@ -189,11 +159,8 @@
 **状态：** ✅ 验证通过
 
 **完成内容：**
-- `GET /api/status`：返回 last_fetch_time、total/today summaries
-- `POST /api/trigger-fetch`：后台异步执行，立即返回 `{"status": "started"}`
-
-**验证结果：**
-- 两个接口均返回 200 OK，JSON 格式正确 ✅
+- `GET /api/status`：返回最近抓取时间、总摘要数、今日摘要数
+- `POST /api/trigger-fetch`：后台异步触发完整抓取任务
 
 ---
 
@@ -202,27 +169,43 @@
 **状态：** ✅ 验证通过
 
 **完成内容：**
-- 删除30天前的 summaries 和 raw_content 记录
-- 日志格式：`[时间戳] CLEANUP: deleted N summaries, N raw_content`
-
-**验证结果：**
-- 旧记录正确删除，近期数据完好 ✅，日志计数准确 ✅
+- 删除超过30天的 `raw_content` 和 `summaries` 记录
+- Render Cron Job 每天 UTC 18:00（北京 02:00）运行
 
 ---
 
 ### 步骤 15 — Dockerfile + docker-compose.yml
 **日期：** 2026-04-15
-**状态：** ⏭ 跳过本地验证
+**状态：** ✅ 验证通过
+
+---
+
+### 步骤 16 — Render 部署
+**日期：** 2026-04-16
+**状态：** ✅ 完成
 
 **完成内容：**
-- `Dockerfile`：python:3.11-slim，安装依赖，暴露8000，uvicorn 启动
-- `docker-compose.yml`：挂载 `./data`，注入 `.env`，映射8000端口
-- `.dockerignore`：排除 `.env`、`data/`、`__pycache__` 等
+- Web Service 部署上线：https://buildersignal.onrender.com
+- Cron Job `buildersignal-fetch`：每天 UTC 22:00（北京 06:00）运行
+- Cron Job `buildersignal-cleanup`：每天 UTC 18:00（北京 02:00）运行
+- 新增 `render.yaml` 将部署配置纳入代码管理
+- 新增 `.python-version` 锁定 Python 3.11，避免 Render 默认 3.14 导致 pydantic-core 构建失败
 
-**说明：** 本机未安装 Docker，跳过本地验证。Dockerfile 已就绪，Render 部署时直接使用。
+---
+
+### Phase 2 — Archive 历史归档页
+**日期：** 2026-04-16
+**状态：** ✅ 验证通过
+
+**完成内容：**
+- `GET /archive`：按日期浏览历史内容
+- 日期选择器（数据库中有记录的日期自动生成）
+- 分类筛选（与 Feed 一致）
+- 卡片展示与 Feed 一致（平台图标、bio、时间戳、摘要、原文链接）
 
 ---
 
 ## 待完成
 
-- [ ] 步骤 16：Render 部署
+- [ ] Phase 2：Settings 页（`/settings`）— 配置管理
+- [ ] Phase 3：RAG 知识库、YouTube 接入

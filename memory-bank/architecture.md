@@ -1,3 +1,4 @@
+
 # 系统架构文档: BuilderSignal
 
 | 版本 | 日期 | 变更 |
@@ -85,7 +86,7 @@ BuilderSignal/
 │
 ├── processor/
 │   ├── __init__.py
-│   ├── claude_client.py # LLM API 封装：call_llm()，使用 OpenAI SDK（兼容豆包/DeepSeek等），返回解析后的 dict
+│   ├── claude_client.py # Claude API 封装：call_claude()，启用 Prompt Caching，返回解析后的 dict
 │   └── summarizer.py    # 批量读取 raw_content(is_processed=0)，调用 Claude，写入 summaries 表
 │
 ├── jobs/
@@ -149,7 +150,7 @@ config（key-value）
 | 服务 | 用途 | 费用 | 备注 |
 | :--- | :--- | :--- | :--- |
 | follow-builders Feed | 原始内容来源（X/播客/博客） | 免费 | GitHub raw，每日UTC 06:00更新 |
-| 豆包 API（火山引擎 ARK） | 双语摘要 + 分类打标 | 按token计费 | OpenAI兼容协议，可通过 .env 切换任意兼容API |
+| Claude API (claude-sonnet-4-6) | 双语摘要 + 分类打标 | 按token计费 | Prompt Cache 可降低90%成本 |
 | Render Web Service | 托管 FastAPI 应用 | Starter $7/月 | Free套餐会休眠，影响Cron Job |
 | Render Disk | SQLite 文件持久化 | $1/月起 | 挂载至 /app/data |
 | Render Cron Job | 定时触发 fetch/cleanup | 免费 | 独立进程，不依赖Web Service |
@@ -174,5 +175,3 @@ config（key-value）
 | 日期 | 版本 | 变更内容 |
 | :--- | :--- | :--- |
 | 2026-04-15 | v1.0 | 初始架构，完成项目骨架（步骤1），确立 follow-builders Feed 方案 |
-| 2026-04-15 | v1.1 | 步骤8-9完成：LLM 从 Claude 改为豆包（火山引擎），OpenAI SDK 兼容接入；`config.py` 新增 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL |
-| 2026-04-15 | v1.2 | 步骤10完成：`jobs/fetch.py` 串联完整抓取流程，里程碑3（AI处理层）全部完成 |

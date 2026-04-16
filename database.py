@@ -33,6 +33,7 @@ class Builder(Base):
     handle     = Column(String, nullable=True)
     rss_url    = Column(String, nullable=True)
     avatar_url = Column(String, nullable=True)
+    bio        = Column(String, nullable=True)
     category   = Column(String, nullable=True)
     is_default = Column(Integer, default=1)
     is_active  = Column(Integer, default=1)

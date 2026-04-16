@@ -38,19 +38,25 @@ def _query_by_date(date_str: str, category: str) -> list[dict]:
         items = []
         for sm in summaries:
             builder_name = "Unknown"
+            builder_bio = ""
             if sm.builder_id:
                 b = session.query(Builder).filter_by(id=sm.builder_id).first()
                 if b:
                     builder_name = b.name
+                    builder_bio = b.bio or ""
             source = ""
             if sm.raw_content_id:
                 rc = session.query(RawContent).filter_by(id=sm.raw_content_id).first()
                 if rc:
                     source = rc.source
+            pub = sm.published_at
+            published_time = pub.strftime("%m-%d %H:%M") if pub else ""
             items.append({
                 "builder_name": builder_name,
+                "builder_bio": builder_bio,
                 "source": _source_label(source),
                 "category_tag": sm.category_tag or "",
+                "published_time": published_time,
                 "summary_en": sm.summary_en or "",
                 "summary_zh": sm.summary_zh or "",
                 "original_url": sm.original_url or "#",
@@ -89,4 +95,5 @@ async def archive(request: Request, date: str = "", category: str = ""):
         "categories": CATEGORIES,
         "items": items,
         "total": len(items),
+        "active_nav": "archive",
     })

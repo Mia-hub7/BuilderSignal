@@ -13,11 +13,45 @@ templates = Jinja2Templates(directory="templates")
 CATEGORIES = ["全部", "技术洞察", "产品动态", "行业预判", "工具推荐"]
 
 
-def _today_start_utc() -> datetime:
-    """Return today's 00:00 UTC+8 expressed as naive UTC datetime."""
-    now_utc8 = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=8)))
-    start_utc8 = now_utc8.replace(hour=0, minute=0, second=0, microsecond=0)
-    return start_utc8.astimezone(timezone.utc).replace(tzinfo=None)
+TZ8 = timezone(timedelta(hours=8))
+
+
+def _day_range_utc(beijing_date: datetime) -> tuple[datetime, datetime]:
+    """Return (day_start, day_end) in naive UTC for a given Beijing date."""
+    start = beijing_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start + timedelta(days=1)
+    return (
+        start.astimezone(timezone.utc).replace(tzinfo=None),
+        end.astimezone(timezone.utc).replace(tzinfo=None),
+    )
+
+
+def _resolve_display_date() -> tuple[datetime, str]:
+    """Return (beijing_date, date_str) for the most recent day that has content.
+    Tries today first, falls back to yesterday, then the latest available day."""
+    now_utc8 = datetime.now(TZ8)
+    with get_session() as session:
+        for delta in [0, 1]:
+            candidate = now_utc8 - timedelta(days=delta)
+            start, end = _day_range_utc(candidate)
+            count = (
+                session.query(Summary)
+                .filter(Summary.created_at >= start, Summary.created_at < end, Summary.is_visible == 1)
+                .count()
+            )
+            if count > 0:
+                return candidate, candidate.strftime("%Y-%m-%d")
+        # fallback: most recent available day
+        latest = (
+            session.query(Summary.created_at)
+            .filter(Summary.is_visible == 1)
+            .order_by(Summary.created_at.desc())
+            .first()
+        )
+        if latest:
+            dt_utc8 = latest[0].replace(tzinfo=timezone.utc).astimezone(TZ8)
+            return dt_utc8, dt_utc8.strftime("%Y-%m-%d")
+    return now_utc8, now_utc8.strftime("%Y-%m-%d")
 
 
 def _relative_time(dt: datetime | None) -> str:
@@ -39,12 +73,12 @@ def _source_label(source: str) -> str:
     return {"x": "X", "podcast": "Podcast", "blog": "Blog"}.get(source, source.upper())
 
 
-def _query_items(category: str) -> list[dict]:
-    today_start = _today_start_utc()
+def _query_items(category: str, beijing_date: datetime) -> list[dict]:
+    start, end = _day_range_utc(beijing_date)
     with get_session() as session:
         q = (
             session.query(Summary)
-            .filter(Summary.created_at >= today_start, Summary.is_visible == 1)
+            .filter(Summary.created_at >= start, Summary.created_at < end, Summary.is_visible == 1)
         )
         if category and category != "全部":
             q = q.filter(Summary.category_tag == category)
@@ -53,20 +87,25 @@ def _query_items(category: str) -> list[dict]:
         items = []
         for sm in summaries:
             builder_name = "Unknown"
+            builder_bio = ""
             if sm.builder_id:
                 b = session.query(Builder).filter_by(id=sm.builder_id).first()
                 if b:
                     builder_name = b.name
+                    builder_bio = b.bio or ""
             source = ""
             if sm.raw_content_id:
                 rc = session.query(RawContent).filter_by(id=sm.raw_content_id).first()
                 if rc:
                     source = rc.source
+            pub = sm.published_at
+            published_time = pub.strftime("%m-%d %H:%M") if pub else ""
             items.append({
                 "builder_name": builder_name,
+                "builder_bio": builder_bio,
                 "source": _source_label(source),
                 "category_tag": sm.category_tag or "",
-                "rel_time": _relative_time(sm.published_at),
+                "published_time": published_time,
                 "summary_en": sm.summary_en or "",
                 "summary_zh": sm.summary_zh or "",
                 "original_url": sm.original_url or "#",
@@ -77,8 +116,9 @@ def _query_items(category: str) -> list[dict]:
 @router.get("/")
 async def feed(request: Request, category: str = ""):
     active = category if category in CATEGORIES else "全部"
-    items = _query_items(active)
-    today_str = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
+    beijing_date, _ = _resolve_display_date()
+    items = _query_items(active, beijing_date)
+    today_str = datetime.now(TZ8).strftime("%Y-%m-%d")
 
     ctx = {
         "request": request,
@@ -87,6 +127,7 @@ async def feed(request: Request, category: str = ""):
         "today_str": today_str,
         "active_category": active,
         "categories": CATEGORIES,
+        "active_nav": "feed",
     }
 
     return templates.TemplateResponse("feed.html", ctx)
