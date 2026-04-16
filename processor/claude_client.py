@@ -44,14 +44,14 @@ CLASSIFY_SYSTEM = """你是 BuilderSignal 的内容分类引擎。
 排他规则：
 - 既有技术细节又有产品发布 → 优先选"产品动态"
 - 既有工具又有技术解释 → 优先选"技术洞察"
-- 无法归入以上四类（如日常生活、无实质内容）→ 仍选最接近的一类"""
+- 内容与 AI / 产品 / 行业 / 工具完全无关（如私人生活、情感内容、日常琐事）→ 返回 off_topic"""
 
 CLASSIFY_USER = """Builder: {builder_name}（{builder_bio}）
 平台: {source}
 内容:
 {raw_text}
 
-只返回 JSON：{{"category": "技术洞察|产品动态|行业预判|工具推荐"}}"""
+只返回 JSON：{{"category": "技术洞察|产品动态|行业预判|工具推荐|off_topic"}}"""
 
 
 # ── 摘要 Prompt ────────────────────────────────────────────────────────────────
@@ -134,10 +134,14 @@ def call_llm(builder_name: str, source: str, raw_text: str,
              builder_bio: str = "") -> dict:
     """Chain classify → summarize, return combined dict.
 
-    Called by summarizer.py. Returns keys: category, summary_zh, summary_en.
+    Called by summarizer.py.
+    Returns {"skip": True} for off_topic content.
+    Otherwise returns keys: category, summary_zh, summary_en.
     """
     category = classify(builder_name, source, raw_text, builder_bio)
     log.debug(f"classify → {category}")
+    if category == "off_topic":
+        return {"skip": True}
     summary = summarize(builder_name, source, raw_text, category, builder_bio)
     return {"category": category, **summary}
 

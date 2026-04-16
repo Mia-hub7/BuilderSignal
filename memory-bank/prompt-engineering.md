@@ -69,6 +69,7 @@
 | V0.2 | `"category": "技术洞察\|产品动态\|行业预判\|工具推荐"` | 基础分类能力 | 仅列出四个类别选项，无定义，无示例 | 基线，能输出合法 JSON |
 | V1.0 | 分类标准 + 关键词 + 排他规则 + builder_bio 注入 | V0.2 分类模糊，行业预判 vs 技术洞察混淆；偶发空值 bug | 为每个类别添加定义、判断关键词、示例；增加排他优先级规则；将 builder_bio 注入 user prompt | 10条样本测试：3条变化，2条 V1.0 明确更准（行业预判识别、空值修复），1条截断内容无法判断 |
 | V1.1 | 拆分为独立调用；temperature=0.1 | 合并 prompt 导致调优变量耦合，无法独立优化摘要 | 分类单独一次调用（temperature=0.1，max_tokens=32）；`classify()` 函数独立 | 架构解耦，为 Round 2 摘要独立优化做准备 |
+| V1.2 | 兜底规则改为返回 `off_topic` | 私人生活/情感内容被强制归类，污染 Feed | 排他规则末项从"选最接近类别"改为"完全无关内容返回 off_topic"；summarizer 检测到 skip 后不生成摘要、不展示 | 已验证：Garry Tan 私人帖、Nikunj 励志帖均正确识别为 off_topic |
 
 ---
 
@@ -320,6 +321,8 @@ Builder: {builder_name}（{builder_bio}）
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | CLS-001 | [36] Aditya Agarwal, x: "The arc of a LLM skeptic: 1. just auto-correct 2. next-token predictors 3. ..." | category: "技术洞察" | 分类错误 | V0.2 无类别定义，"LLM" 触发技术洞察，但内容是对 AI 认知演变的观点预测，属行业预判 | V1.0 增加行业预判定义和排他规则，修复 |
 | CLS-002 | [32] Peter Steinberger, x: "once again, I'm amazed by scammers. https://t.co/..." | category: "" (空值) | 输出格式错误 | V0.2 对内容太短/仅含链接的推文无法决策，返回空字符串 | V1.0 增加兜底规则"仍选最接近的一类"，修复 |
+| CLS-003 | Garry Tan, x: "My grandma passed away today. She was 94 years old..." | category: 强制归类（私人内容） | 分类错误 | 兜底规则要求"选最接近类别"，导致私人生活内容被塞入行业类别，污染 Feed | V1.2 兜底规则改为返回 off_topic，summarizer 跳过不展示，已修复 |
+| CLS-004 | Nikunj Kothari, x: "Find someone who genuinely cares. A mentor. A founder..." | category: "技术洞察" | 分类错误 | 励志/职场建议内容与 AI 技术无关，但旧兜底规则强制选最接近类别，被错归为技术洞察 | V1.2 同上，返回 off_topic，已修复 |
 
 ### 2.2 摘要 Bad Cases
 

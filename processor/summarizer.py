@@ -41,6 +41,11 @@ def run_summarizer() -> dict:
                 failed += 1
                 continue
 
+            if result.get("skip"):
+                record.is_processed = 2
+                log.info(f"Skipped id={record.id} ({builder_name}) → off_topic")
+                continue
+
             session.add(Summary(
                 raw_content_id=record.id,
                 builder_id=record.builder_id,

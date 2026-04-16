@@ -169,6 +169,50 @@ call_llm("Andrej Karpathy", "x", "Fine-tuning is overrated. RAG solves 80%...")
 
 ---
 
+---
+
+### 阶段六：off_topic 过滤（V1.2，2026-04-16）
+
+**触发：** 线上 Feed 发现两条明显错误分类：
+- Garry Tan 奶奶去世帖被强制归类展示
+- Nikunj Kothari 励志/职场建议帖被归为"技术洞察"
+
+**根因：** V1.1 兜底规则"无法归入四类 → 选最接近的一类"对完全无关内容不适用，导致私人和励志内容污染 Feed。
+
+**决策：** 不新增"其他"可见分类（避免垃圾桶效应），而是加 `off_topic` 内部标记：
+- 内容仍入库（保持 Track the Builders 原则）
+- `is_processed=2`，不生成摘要，不出现在 Feed/Archive
+
+**改动：**
+- `CLASSIFY_SYSTEM`：兜底规则改为"完全无关内容 → 返回 off_topic"
+- `CLASSIFY_USER`：category 选项加入 `off_topic`
+- `call_llm()`：检测到 off_topic 直接返回 `{"skip": True}`
+- `summarizer.py`：检测到 skip 跳过摘要生成，设 `is_processed=2`
+
+**验证：**
+```
+classify("Garry Tan", "x", "My grandma passed away today...") → off_topic ✅
+classify("Nikunj Kothari", "x", "Find someone who genuinely cares...") → off_topic ✅
+```
+
+**Bad Cases 记录：** → CLS-003、CLS-004（见 prompt-engineering.md 2.1）
+
+---
+
+### Round 1 总结（更新）
+
+| 指标 | 基线 V0.2 | V1.2（当前） |
+| :--- | :--- | :--- |
+| 空值 bug | 偶发 | 已修复 |
+| 无关内容展示 | 强制归类展示 | off_topic 过滤不展示 |
+| 分类 temperature | 0.3（合并） | 0.1（独立） |
+| 摘要 temperature | 0.3（合并） | 0.4（独立） |
+| Builder 身份注入 | 无 | ✅ bio 注入 |
+| Category-aware 摘要 | 无 | ✅ category 注入 |
+| 调优变量隔离 | 无 | ✅ 完全解耦 |
+
+---
+
 ## Round 2 — 摘要质量优化（待开展）
 
 ### 计划
