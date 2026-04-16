@@ -133,6 +133,17 @@ async def feed(request: Request, category: str = ""):
     return templates.TemplateResponse("feed.html", ctx)
 
 
+@router.get("/api/debug")
+async def api_debug():
+    import traceback
+    try:
+        with get_session() as session:
+            count = session.query(Summary).count()
+        return JSONResponse({"ok": True, "count": count})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e), "trace": traceback.format_exc()})
+
+
 @router.get("/api/status")
 async def api_status():
     now_utc8 = datetime.now(TZ8)

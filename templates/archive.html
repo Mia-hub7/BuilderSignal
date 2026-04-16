@@ -15,8 +15,33 @@
   <h1 class="text-xl font-bold text-[#0F172A]">历史归档</h1>
 </div>
 
-<!-- 日期选择 -->
-{% if dates %}
+<!-- 搜索框 -->
+<form method="get" action="/archive" class="mb-5 flex gap-2">
+  <input
+    type="text"
+    name="keyword"
+    value="{{ keyword }}"
+    placeholder="搜索摘要内容..."
+    class="flex-1 px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6366F1] shadow-sm"
+  />
+  {% if active_category != "全部" %}
+  <input type="hidden" name="category" value="{{ active_category }}" />
+  {% endif %}
+  <button type="submit"
+    class="px-4 py-2 rounded-xl text-sm font-medium text-white shadow-sm"
+    style="background: linear-gradient(135deg, #6366F1, #818CF8);">
+    搜索
+  </button>
+  {% if keyword %}
+  <a href="/archive{% if active_category != '全部' %}?category={{ active_category }}{% endif %}"
+     class="px-4 py-2 rounded-xl text-sm font-medium bg-white text-slate-500 shadow-sm border border-slate-200 hover:text-slate-700">
+    清除
+  </a>
+  {% endif %}
+</form>
+
+<!-- 日期选择（搜索模式下隐藏） -->
+{% if dates and not keyword %}
 <div class="flex gap-2 mb-4 flex-wrap">
   {% for d in dates %}
   <a href="/archive?date={{ d }}&category={% if active_category != '全部' %}{{ active_category }}{% endif %}"
@@ -27,11 +52,12 @@
   </a>
   {% endfor %}
 </div>
+{% endif %}
 
 <!-- 分类筛选 -->
 <div class="flex gap-2 mb-4 flex-wrap">
   {% for cat in categories %}
-  <a href="/archive?date={{ active_date }}&category={% if cat != '全部' %}{{ cat }}{% endif %}"
+  <a href="/archive?{% if keyword %}keyword={{ keyword }}&{% endif %}date={{ active_date }}&category={% if cat != '全部' %}{{ cat }}{% endif %}"
      class="px-3 py-1.5 rounded-full text-sm font-medium transition-all
        {% if active_category == cat %}text-white shadow-md{% else %}bg-white text-slate-500 hover:text-[#6366F1] hover:shadow-sm shadow-sm{% endif %}"
      {% if active_category == cat %}style="background: linear-gradient(135deg, #6366F1, #818CF8);"{% endif %}>
@@ -41,7 +67,13 @@
 </div>
 
 <!-- 计数 -->
-<p class="text-sm text-slate-400 mb-5">{{ active_date }} · 共 {{ total }} 条内容</p>
+<p class="text-sm text-slate-400 mb-5">
+  {% if keyword %}
+  搜索「{{ keyword }}」· 共 {{ total }} 条结果
+  {% else %}
+  {{ active_date }} · 共 {{ total }} 条内容
+  {% endif %}
+</p>
 
 <!-- 卡片列表 -->
 {% if items %}
@@ -94,14 +126,8 @@
   {% endfor %}
 {% else %}
   <div class="text-center py-16 text-slate-400">
-    <p class="text-lg">该日期暂无内容</p>
+    <p class="text-lg">{% if keyword %}未找到相关内容{% else %}该日期暂无内容{% endif %}</p>
   </div>
-{% endif %}
-
-{% else %}
-<div class="text-center py-16 text-slate-400">
-  <p class="text-lg">暂无历史记录</p>
-</div>
 {% endif %}
 
 {% endblock %}
