@@ -71,15 +71,18 @@ def _query_by_keyword(keyword: str, category: str) -> list[dict]:
     kw = f"%{keyword}%"
     with get_session() as session:
         from sqlalchemy import or_
+        matching_builder_ids = [
+            b.id for b in session.query(Builder).filter(Builder.name.ilike(kw)).all()
+        ]
+        filters = [
+            Summary.summary_zh.ilike(kw),
+            Summary.summary_en.ilike(kw),
+        ]
+        if matching_builder_ids:
+            filters.append(Summary.builder_id.in_(matching_builder_ids))
         q = (
             session.query(Summary)
-            .filter(
-                Summary.is_visible == 1,
-                or_(
-                    Summary.summary_zh.ilike(kw),
-                    Summary.summary_en.ilike(kw),
-                ),
-            )
+            .filter(Summary.is_visible == 1, or_(*filters))
         )
         if category and category != "全部":
             q = q.filter(Summary.category_tag == category)
