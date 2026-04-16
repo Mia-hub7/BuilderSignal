@@ -7,6 +7,7 @@ from database import init_db
 from jobs.seed import seed as run_seed
 from routers.feed import router as feed_router
 from routers.archive import router as archive_router
+from routers.settings import router as settings_router
 
 
 @asynccontextmanager
@@ -23,3 +24,4 @@ templates = Jinja2Templates(directory="templates")
 
 app.include_router(feed_router)
 app.include_router(archive_router)
+app.include_router(settings_router)
