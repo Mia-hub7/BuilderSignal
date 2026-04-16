@@ -13,7 +13,7 @@ BATCH_SIZE = 20
 
 
 def run_summarizer() -> dict:
-    processed = skipped = failed = 0
+    processed = failed = 0
 
     with get_session() as session:
         pending = (
@@ -39,26 +39,21 @@ def run_summarizer() -> dict:
                 failed += 1
                 continue
 
-            if result.get("skip"):
-                record.is_processed = 2
-                skipped += 1
-                log.info(f"Skipped id={record.id} ({builder_name})")
-            else:
-                session.add(Summary(
-                    raw_content_id=record.id,
-                    builder_id=record.builder_id,
-                    category_tag=result.get("category", ""),
-                    summary_zh=result.get("summary_zh", ""),
-                    summary_en=result.get("summary_en", ""),
-                    original_url=record.url,
-                    published_at=record.published_at,
-                ))
-                record.is_processed = 1
-                processed += 1
-                log.info(f"Summarized id={record.id} ({builder_name}) → {result.get('category')}")
+            session.add(Summary(
+                raw_content_id=record.id,
+                builder_id=record.builder_id,
+                category_tag=result.get("category", ""),
+                summary_zh=result.get("summary_zh", ""),
+                summary_en=result.get("summary_en", ""),
+                original_url=record.url,
+                published_at=record.published_at,
+            ))
+            record.is_processed = 1
+            processed += 1
+            log.info(f"Summarized id={record.id} ({builder_name}) → {result.get('category')}")
 
-    log.info(f"Done — processed:{processed} skipped:{skipped} failed:{failed}")
-    return {"processed": processed, "skipped": skipped, "failed": failed}
+    log.info(f"Done — processed:{processed} failed:{failed}")
+    return {"processed": processed, "failed": failed}
 
 
 if __name__ == "__main__":
