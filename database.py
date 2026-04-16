@@ -14,12 +14,14 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 import config
 
-os.makedirs(os.path.dirname(os.path.abspath(config.DATABASE_PATH)), exist_ok=True)
-
-engine = create_engine(
-    f"sqlite:///{config.DATABASE_PATH}",
-    connect_args={"check_same_thread": False}
-)
+if config.DATABASE_URL:
+    engine = create_engine(config.DATABASE_URL)
+else:
+    os.makedirs(os.path.dirname(os.path.abspath(config.DATABASE_PATH)), exist_ok=True)
+    engine = create_engine(
+        f"sqlite:///{config.DATABASE_PATH}",
+        connect_args={"check_same_thread": False}
+    )
 
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
