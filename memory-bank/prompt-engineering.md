@@ -323,6 +323,10 @@ Builder: {builder_name}（{builder_bio}）
 | CLS-002 | [32] Peter Steinberger, x: "once again, I'm amazed by scammers. https://t.co/..." | category: "" (空值) | 输出格式错误 | V0.2 对内容太短/仅含链接的推文无法决策，返回空字符串 | V1.0 增加兜底规则"仍选最接近的一类"，修复 |
 | CLS-003 | Garry Tan, x: "My grandma passed away today. She was 94 years old..." | category: 强制归类（私人内容） | 分类错误 | 兜底规则要求"选最接近类别"，导致私人生活内容被塞入行业类别，污染 Feed | V1.2 兜底规则改为返回 off_topic，summarizer 跳过不展示，已修复 |
 | CLS-004 | Nikunj Kothari, x: "Find someone who genuinely cares. A mentor. A founder..." | category: "技术洞察" | 分类错误 | 励志/职场建议内容与 AI 技术无关，但旧兜底规则强制选最接近类别，被错归为技术洞察 | V1.2 同上，返回 off_topic，已修复 |
+| CLS-005 | Swyx, x: "this is the year of subagents, but that is largely an optimization problem. the inverse problem -..." | category: "产品动态" | 分类错误 | 内容是对 subagents 趋势的观点分析，不涉及任何产品发布。"subagents"一词触发了产品动态判断 | 待修复：需强化行业预判定义，区分"评论趋势"和"发布产品" |
+| CLS-006 | Swyx, x: "in the grand narrative of Meta x AI, we saw the flop (Llama 4), and now we're seeing the turn: more hiri..." | category: "产品动态" | 分类错误 | 内容是对 Meta AI 战略格局的分析评论，不是产品发布。"Meta x AI"触发了产品动态判断 | 待修复：同 CLS-005，行业竞争格局分析应归行业预判 |
+| CLS-007 | Nikunj Kothari, x: "You can give system diagrams to Claude code and definitely one shot a lot of..." | category: "行业预判" | 分类错误 | 内容是具体的 Claude 使用技巧（给系统图生成代码），属技术洞察。"Claude"触发了行业预判判断 | 待修复：具体工具使用方法/技巧应归技术洞察而非行业预判 |
+| CLS-008 | Peter Yang, x: "Feels like there's an outage for Claude every other day - I wonder if this is related to the pace of shipping..." | category: "技术洞察" | 分类错误 | 内容是对 Claude 产品可靠性的观察评论，属行业预判。"outage"等词触发了技术洞察判断 | 待修复：产品稳定性的主观评论/观察应归行业预判而非技术洞察 |
 
 ### 2.2 摘要 Bad Cases
 
