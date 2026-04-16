@@ -1,0 +1,54 @@
+services:
+  # Web Service — FastAPI Dashboard
+  - type: web
+    name: buildersignal
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    disk:
+      name: buildersignal-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: DATABASE_PATH
+        value: /app/data/buildersignal.db
+      - key: TZ
+        value: Asia/Shanghai
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+
+  # Cron Job — 每天北京时间 06:00 抓取内容（UTC 22:00 前一天）
+  - type: cron
+    name: buildersignal-fetch
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    schedule: "0 22 * * *"
+    command: python jobs/fetch.py
+    envVars:
+      - key: DATABASE_PATH
+        value: /app/data/buildersignal.db
+      - key: TZ
+        value: Asia/Shanghai
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+
+  # Cron Job — 每天北京时间 02:00 清理30天前数据（UTC 18:00）
+  - type: cron
+    name: buildersignal-cleanup
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    schedule: "0 18 * * *"
+    command: python jobs/cleanup.py
+    envVars:
+      - key: DATABASE_PATH
+        value: /app/data/buildersignal.db
+      - key: TZ
+        value: Asia/Shanghai
