@@ -18,7 +18,34 @@
 
 ---
 
-### 1.2 技术攻坚复盘
+### 1.2 历史版本完整内容
+
+#### V0.2（基线，2026-04-15）
+
+**System Prompt**
+```
+你是一个专业的 AI 行业内容分析师。
+你的任务是对 AI Builder 发布的内容进行分类。
+你必须只返回合法的 JSON，不要包含任何 Markdown 代码块或额外说明。
+```
+
+**User Prompt Template**
+```
+以下是 {builder_name} 在 {source} 上发布的内容：
+
+{raw_text}
+
+请对内容进行分类，返回以下 JSON：
+{"category": "技术洞察|产品动态|行业预判|工具推荐"}
+
+只返回 JSON。
+```
+
+> 注：V0.2 分类 prompt 与摘要 prompt 是合并在一个 `claude_client.py` 调用里的，完整 user prompt 还包含 summary_zh 和 summary_en 字段的输出要求（见 `processor/prompt_test.py` classify_v02 函数）。
+
+---
+
+### 1.3 技术攻坚复盘
 
 **问题背景：**
 V0.2 Prompt 仅列出 4 个类别标签，无定义、无示例、无消歧规则。测试发现对"观点预测类"内容（如 LLM 认知演变的讨论）误分类为"技术洞察"；对极短/截断内容偶发返回空字符串（非合法 JSON key value）。
