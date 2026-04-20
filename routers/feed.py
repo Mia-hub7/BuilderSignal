@@ -116,15 +116,14 @@ def _query_items(category: str, beijing_date: datetime) -> list[dict]:
 @router.get("/")
 async def feed(request: Request, category: str = ""):
     active = category if category in CATEGORIES else "全部"
-    beijing_date, _ = _resolve_display_date()
+    beijing_date, display_date_str = _resolve_display_date()
     items = _query_items(active, beijing_date)
-    today_str = datetime.now(TZ8).strftime("%Y-%m-%d")
 
     ctx = {
         "request": request,
         "items": items,
         "total": len(items),
-        "today_str": today_str,
+        "display_date_str": display_date_str,
         "active_category": active,
         "categories": CATEGORIES,
         "active_nav": "feed",
