@@ -22,13 +22,13 @@ services:
       - key: LLM_MODEL
         sync: false
 
-  # Cron Job — 每天北京时间 06:00 抓取内容（UTC 22:00 前一天）
+  # Cron Job — 每小时检查上游 Feed 是否更新，有更新才处理（延迟约1小时）
   - type: cron
     name: buildersignal-fetch
     runtime: python
     pythonVersion: "3.11"
     buildCommand: pip install -r requirements.txt
-    schedule: "0 22 * * *"
+    schedule: "0 * * * *"
     command: python jobs/fetch.py
     envVars:
       - key: DATABASE_PATH
