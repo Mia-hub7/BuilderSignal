@@ -288,10 +288,10 @@
 - [x] `routers/archive.py` / `templates/archive.html`：同步更新分类筛选
 
 ### Prompt 工程优化 — Round 3：实体/引用提取
-**状态：** ⏳ 待完成
+**状态：** 🔵 暂缓
 
-- [ ] 从摘要内容中提取实体：工具名、模型名、公司名、人名
-- [ ] 设计提取字段和存储方式（summaries 表扩展 or 新表）
+- 功能本身可行，对日常使用无直接价值
+- 待 Phase 3 RAG 知识库启动时再做
 
 ### Phase 3
 - [ ] RAG 知识库（基于 Builder 历史观点）
