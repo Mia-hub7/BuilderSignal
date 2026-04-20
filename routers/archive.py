@@ -8,7 +8,7 @@ from database import get_session, Summary, Builder, RawContent
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
-CATEGORIES = ["全部", "技术洞察", "产品动态", "行业预判", "工具推荐"]
+CATEGORIES = ["全部", "深度内容", "观点速览"]
 
 
 def _source_label(source: str) -> str:

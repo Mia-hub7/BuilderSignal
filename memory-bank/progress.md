@@ -253,8 +253,47 @@
 - [x] `config.py` 新增 `SUPADATA_API_KEY` 环境变量
 - [x] Render 和本地 `.env` 均已配置 API Key
 
-### Phase 3
+### Prompt 工程优化 — Round 1：分类体系重设计
+**日期：** 2026-04-19
+**状态：** ✅ 完成
 
+- [x] 文档修正：所有文件中"Claude API"→"豆包大模型（火山引擎 ARK）"，环境变量名更新
+- [x] 分类体系从 4 类改为 2 类：深度内容 / 观点速览（V1.4）
+- [x] `classify()` 调用独立，与 `summarize()` 解耦，温度 0.1
+- [x] `architecture.md` 新增 Section 7：全库重跑安全规范（备份 → 抽样验证 → 全跑）
+- [x] `prompt-engineering.md` 更新 V1.4 分类 prompt 完整记录
+
+### Prompt 工程优化 — Round 2：摘要质量提升
+**日期：** 2026-04-19
+**状态：** ✅ 完成
+
+- [x] SUMMARIZE_SYSTEM 加强第一人称禁令：明确列出"XX认为/指出/表示/该作者"为禁止词（V2.0）
+- [x] 增加"禁止扩充"规则：原文有多少信息就写多少，不推测脑补
+- [x] 去掉所有内容过滤逻辑（off_topic 分类、_has_enough_content 过滤器）（V2.1）
+- [x] 短内容处理（去 URL 后 < 30 字符）：直接存原文 + 调 `translate()` 生成中文翻译，不调 `summarize()` 避免 LLM 编造
+- [x] 新增 `translate()` 函数：专用于短内容中文翻译，temperature=0.1
+- [x] `regression_test.py` 新增 `--export` 模式：导出 CSV 供人工打标签，不调 LLM
+- [x] 全库 100 条数据用 V2.1 prompt 重新生成
+
+---
+
+## 待完成
+
+### Feed UI 更新
+**日期：** 2026-04-20
+**状态：** ✅ 完成
+
+- [x] `routers/feed.py`：`CATEGORIES` 从旧4类改为 `["全部", "深度内容", "观点速览"]`
+- [x] `templates/feed.html`：`category_styles` dict 更新为新2类的颜色映射（深度内容=蓝，观点速览=绿）
+- [x] `routers/archive.py` / `templates/archive.html`：同步更新分类筛选
+
+### Prompt 工程优化 — Round 3：实体/引用提取
+**状态：** ⏳ 待完成
+
+- [ ] 从摘要内容中提取实体：工具名、模型名、公司名、人名
+- [ ] 设计提取字段和存储方式（summaries 表扩展 or 新表）
+
+### Phase 3
 - [ ] RAG 知识库（基于 Builder 历史观点）
 - [ ] 自然语言问答（"Karpathy 去年对 RAG 的看法？"）
 - [ ] 观点碰撞专题聚合
