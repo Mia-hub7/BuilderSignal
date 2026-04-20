@@ -4,6 +4,7 @@
 | :--- | :--- | :--- | :--- |
 | v1.1 | 草案 | 2026-04-15 | AI PM |
 | v1.2 | 已更新 | 2026-04-16 | AI PM |
+| v1.3 | 已更新 | 2026-04-20 | AI PM |
 
 ---
 
@@ -21,6 +22,7 @@
 本产品为**个人自用工具**，目标用户即开发者本人，具备以下特征：
 
 * AI 从业者，需要紧跟技术演进（如 RAG, Agentic Workflow）的产品/工程视角
+*针对求职者、学生、AI 行业转型者
 * 关注头部实验室核心人员（OpenAI, Anthropic 等）的一手思考
 * 希望建立底层技术直觉，避开二手营销信息
 
@@ -52,7 +54,7 @@
 | YouTube / Podcast | follow-builders Feed + Supadata API 转录（transcript 为空时补充） | ✅ |
 
 * **数据来源**：消费 [follow-builders](https://github.com/zarazhangrui/follow-builders) 公开 JSON Feed，每日 UTC 06:00 更新。
-* **抓取频率**：每天一次（Render Cron Job，UTC 22:00 / 北京时间 06:00）。
+* **抓取频率**：每小时检查一次（Render Cron Job），通过比对上游 Feed 的 `generatedAt` 字段判断是否有新内容，有更新才触发抓取和 LLM 处理，无更新则跳过（零 API 消耗）。上游 Feed 约每天 UTC 07:15 更新，实际延迟约 1 小时。
 * **去重逻辑**：基于 content_id（SHA-256 hash），避免重复入库。
 
 ### 4.3 AI 驱动内容处理 (AI Processing)
@@ -60,10 +62,8 @@
 * **LLM**：豆包 API（火山引擎 ARK，deepseek-chat 模型，OpenAI 兼容协议）
 * **内容策略**：白名单内所有内容直接入库，不做 LLM 过滤（Track the Builders 原则）
 * **分类标签**：每条内容自动打标，支持以下类别过滤：
-  * `技术洞察` — 算法、架构、工程实现
-  * `产品动态` — 新功能、产品发布、路线图
-  * `行业预判` — 对未来趋势的观点与预测
-  * `工具推荐` — Builder 提到的工具、库、服务
+  * `深度内容` — 包含具体可学习或可行动信息（技术原理、产品发布、工具推荐、使用技巧等）
+  * `观点速览` — 看法、预测、评论、感想等观点类内容
 * **结构化摘要（双语）**：
   * **中文摘要**：2-4句，提炼核心观点
   * **英文摘要**：2-4 sentences, extracting key insights
@@ -81,9 +81,9 @@
 
 ### 4.5 自动化定时任务 (Scheduled Jobs)
 
-* **抓取任务**：每天 UTC 22:00（北京 06:00）自动触发，确保早上 09:00 有当日内容
+* **抓取任务**：每小时（`0 * * * *`）自动触发，先检查上游 `generatedAt` 是否变化，无变化则跳过；上游更新后约 1 小时内完成入库和摘要生成
 * **清理任务**：每天 UTC 18:00（北京 02:00）清理 30 天前的历史数据
-* **手动触发**：`POST /api/trigger-fetch` 支持手动触发完整抓取流程
+* **手动触发**：`POST /api/trigger-fetch` 支持手动触发；`python jobs/fetch.py --force` 可强制跳过 `generatedAt` 检查
 * **注**：Daily Digest 置顶推送功能尚未实现，列入 Phase 3
 
 ---
@@ -131,13 +131,15 @@
 [配置阶段]
 用户访问 Settings → 确认/编辑白名单
 
-[后台运行 - 每天 UTC 22:00]
+[后台运行 - 每小时]
 Cron Job 触发
-  → POST /api/trigger-fetch → Web Service 后台异步执行
-  → 拉取 follow-builders GitHub Feed（x / podcast / blog）
-  → 去重过滤（content_id SHA-256 hash）
-  → 豆包 API 处理：分类打标 + 双语摘要生成
-  → 存入 Supabase PostgreSQL
+  → 检查上游 generatedAt，与上次记录比对
+  → 无变化 → 跳过，结束
+  → 有变化 → 拉取 follow-builders GitHub Feed（x / podcast / blog）
+           → 去重过滤（content_id SHA-256 hash）
+           → 豆包 API 处理：分类打标 + 双语摘要生成
+           → 存入 Supabase PostgreSQL
+           → 更新 config 表中的 generatedAt 记录
 
 [用户交互]
 用户打开浏览器 → Feed 查看当日摘要 → 分类筛选
@@ -166,11 +168,12 @@ Cron Job 触发
 ### 数据流
 
 ```
-follow-builders GitHub Feed（每日 UTC 06:00 更新）
+follow-builders GitHub Feed（每日约 UTC 07:15 更新）
   feed-x.json / feed-podcasts.json / feed-blogs.json
+    ↓ jobs/fetch.py（检查 generatedAt，无变化则跳过）
     ↓ scrapers/feed_fetcher.py（去重 + Supadata 转录补充）
 原始内容存储（raw_content 表）
-    ↓ processor/summarizer.py → 豆包 API
+    ↓ processor/summarizer.py → 豆包 API（分类 + 双语摘要）
 结构化摘要存储（summaries 表）
     ↓ routers/ + Jinja2 模板
 用户浏览器（Feed / Archive / Settings）
@@ -195,7 +198,7 @@ follow-builders GitHub Feed（每日 UTC 06:00 更新）
 
 | 指标 | 目标 |
 | :--- | :--- |
-| 每日内容准时更新率 | ≥ 95% |
+| 内容更新延迟 | 上游 Feed 更新后 ≤ 1 小时 |
 | 摘要双语质量（主观评分） | ≥ 4/5 分 |
 | 原文链接有效率 | ≥ 98% |
 | Dashboard 页面加载时间 | < 3s |
