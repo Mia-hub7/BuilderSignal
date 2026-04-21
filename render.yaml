@@ -30,6 +30,9 @@ services:
     buildCommand: pip install -r requirements.txt
     schedule: "0 * * * *"
     command: python jobs/fetch.py
+    disk:
+      name: buildersignal-data
+      mountPath: /app/data
     envVars:
       - key: DATABASE_PATH
         value: /app/data/buildersignal.db
@@ -50,6 +53,9 @@ services:
     buildCommand: pip install -r requirements.txt
     schedule: "0 18 * * *"
     command: python jobs/cleanup.py
+    disk:
+      name: buildersignal-data
+      mountPath: /app/data
     envVars:
       - key: DATABASE_PATH
         value: /app/data/buildersignal.db
