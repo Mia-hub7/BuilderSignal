@@ -287,6 +287,19 @@
 - [x] `templates/feed.html`：`category_styles` dict 更新为新2类的颜色映射（深度内容=蓝，观点速览=绿）
 - [x] `routers/archive.py` / `templates/archive.html`：同步更新分类筛选
 
+### 分类评测体系 — Golden Set 扩充
+**日期：** 2026-04-20
+**状态：** ✅ 完成
+
+- [x] Golden Set 从 8条扩充至 30条，覆盖 X / podcast / blog 三来源，深度内容11条 + 观点速览19条
+- [x] 逐一阅读140条历史数据，人工判断分类并填写 note
+- [x] 跑完整回归测试（140条全量 + 30条 Golden Set），准确率 97%（29/30）
+- [x] 1条已知边界 case（id=59，Workflow SDK 推荐帖），接受不调 Prompt
+- [x] id=29、id=93 标注修正（由深度内容→观点速览），Golden Set 与模型预测对齐
+- [x] `doc/eval-system.md` 同步更新 Golden Set 表格与迭代历史
+
+---
+
 ### Prompt 工程优化 — Round 3：实体/引用提取
 **状态：** 🔵 暂缓
 

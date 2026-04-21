@@ -23,8 +23,8 @@
 | 数据库 | SQLite | 内置 | 单用户足够，零运维 |
 | ORM | SQLAlchemy | 2.0+ | 简洁的数据库操作，方便后续迁移 |
 | 定时任务 | Render Cron Job | — | 独立进程，比 APScheduler 更健壮 |
-| LLM | Claude API | claude-sonnet-4-6 | 摘要 + 分类 + 双语 |
-| Anthropic SDK | anthropic | 0.40+ | 官方 Python SDK，支持 Prompt Cache |
+| LLM | 豆包大模型（火山引擎 ARK） | ep-xxx（OpenAI 兼容协议） | 摘要 + 分类 + 双语 |
+| LLM SDK | openai | 1.x | OpenAI 兼容客户端，调用火山引擎接口 |
 | X 数据抓取 | Tweepy | 4.14+ | 官方 X API Python 封装 |
 | RSS 解析 | feedparser | 6.0+ | 成熟稳定，零依赖 |
 | HTTP 客户端 | httpx | 0.27+ | 异步支持，替代 requests |
@@ -112,26 +112,23 @@ Render Cron Job 3    → 每天02:00运行 python jobs/cleanup.py（清理过期
 
 ---
 
-### 5. LLM：Claude API + Prompt Caching
+### 5. LLM：豆包大模型（火山引擎 ARK）
 
-**模型选择：** `claude-sonnet-4-6`
-- 摘要质量高，速度快，成本适中
-- 支持 Prompt Caching，系统提示命中缓存后成本降低 90%
+**实际配置：**
+- `LLM_BASE_URL`：`https://ark.cn-beijing.volces.com/api/v3`
+- `LLM_MODEL`：`ep-20260415172907-t5kwc`（火山引擎推理接入点 ID）
+- SDK：`openai`（OpenAI 兼容协议，火山引擎支持相同接口）
 
-**Prompt Caching 使用方式：**
+**调用示例：**
 
 ```python
-# 系统提示加 cache_control，重复调用时节省 token 费用
-response = client.messages.create(
-    model="claude-sonnet-4-6",
-    system=[
-        {
-            "type": "text",
-            "text": "你是专业的 AI 行业内容分析师...",
-            "cache_control": {"type": "ephemeral"}  # 启用缓存
-        }
-    ],
-    messages=[{"role": "user", "content": raw_text}]
+from openai import OpenAI
+client = OpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL)
+resp = client.chat.completions.create(
+    model=LLM_MODEL,
+    messages=[{"role": "system", "content": "..."}, {"role": "user", "content": raw_text}],
+    temperature=0.1,
+    response_format={"type": "json_object"},
 )
 ```
 
@@ -195,7 +192,7 @@ pydantic==2.9.2
 buildersignal/
 ├── main.py              # FastAPI 应用（Web Service 入口）
 ├── jobs/
-│   ├── fetch.py         # Cron Job 1：抓取 + Claude 处理
+│   ├── fetch.py         # Cron Job 1：抓取 + 豆包 LLM 处理
 │   ├── digest.py        # Cron Job 2：生成每日摘要
 │   └── cleanup.py       # Cron Job 3：清理过期数据
 ├── ...

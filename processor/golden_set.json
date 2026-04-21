@@ -1,0 +1,152 @@
+[
+  {
+    "id": 36,
+    "expected": "观点速览",
+    "note": "作者描述自己对 AI 认知演变的历程（从怀疑到相信），是个人观点叙述，无具体技术或产品信息"
+  },
+  {
+    "id": 32,
+    "expected": "观点速览",
+    "note": "短推文，作者对骗子的评论感慨，属于行业观察类观点，无具体可学习信息"
+  },
+  {
+    "id": 20,
+    "expected": "观点速览",
+    "note": "CLS-003：Garry Tan 奶奶去世的私人内容，V2.1起off_topic已移除，此类内容现归入观点速览"
+  },
+  {
+    "id": 28,
+    "expected": "观点速览",
+    "note": "CLS-004：励志/人生建议内容，V2.1起off_topic已移除，此类内容现归入观点速览"
+  },
+  {
+    "id": 3,
+    "expected": "观点速览",
+    "note": "CLS-005：Swyx 对 subagents 趋势的判断和观点，无具体实现或工具信息"
+  },
+  {
+    "id": 2,
+    "expected": "观点速览",
+    "note": "CLS-006：对 Meta AI 战略格局的评论分析，是观点而非具体技术/产品信息"
+  },
+  {
+    "id": 29,
+    "expected": "观点速览",
+    "note": "CLS-007修正：主体是对AI清晰度局限的哲学讨论，工具提示为顺带一提，整体属观点而非可学习技巧"
+  },
+  {
+    "id": 6,
+    "expected": "观点速览",
+    "note": "CLS-008：对 Claude 频繁宕机的主观评论和猜测，是观点而非技术分析"
+  },
+  {
+    "id": 5,
+    "expected": "深度内容",
+    "note": "Josh Woodward 宣布 Gemini Mac 发布：100天内完成100+原生Swift功能，具体产品发布有细节可学习"
+  },
+  {
+    "id": 12,
+    "expected": "深度内容",
+    "note": "Thariq 给出具体 Claude Code 设置命令：CLAUDE_CODE_AUTO_COMPACT_WINDOW=400000，含可直接使用的环境变量"
+  },
+  {
+    "id": 43,
+    "expected": "深度内容",
+    "note": "Kevin Weil 发布 GPT-Rosalind 科学前沿模型，有具体领域（生物/药物/基因组）和使用入口信息"
+  },
+  {
+    "id": 45,
+    "expected": "深度内容",
+    "note": "Peter Yang 介绍具体 AI workflow 模式：让 AI 创建并行 eval agent 做是/否检查打分，可复现"
+  },
+  {
+    "id": 51,
+    "expected": "深度内容",
+    "note": "Cat Wu 说明 Claude Code Opus 4.7 默认 effort 级别为 xhigh，可用 /effort 调整，具体可用命令"
+  },
+  {
+    "id": 52,
+    "expected": "深度内容",
+    "note": "Cat Wu 给出具体操作建议：将测试工作流写进 claude.md 或用 /verify-app skill，可直接使用"
+  },
+  {
+    "id": 59,
+    "expected": "深度内容",
+    "note": "Rauch 推荐 Workflow SDK 解决 agent 耐久性问题，有具体工具推荐和问题定义，有学习价值"
+  },
+  {
+    "id": 61,
+    "expected": "深度内容",
+    "note": "Alex Albert 列举 Opus 4.7 五项具体改进：异步工作、effort 可预测、不缩图、更好的 UI 品味等"
+  },
+  {
+    "id": 37,
+    "expected": "深度内容",
+    "note": "AI & I 播客解释 EBM vs LLM 技术原理：EBM 是非自回归的，有具体可学习的技术概念"
+  },
+  {
+    "id": 85,
+    "expected": "深度内容",
+    "note": "Claude 官方博客发布 Claude Managed Agents：组合式 API 套件，有具体功能和使用场景"
+  },
+  {
+    "id": 64,
+    "expected": "深度内容",
+    "note": "Ryo Lu 分享具体多模型工作流：Opus 4.7 规划 / Composer 2 构建迭代 / GPT-5.4 解难 bug，可复用"
+  },
+  {
+    "id": 93,
+    "expected": "观点速览",
+    "note": "推文本身只有'Having fun + 链接'，5个用例在视频里，推文内容信息密度低，属分享/推广而非可学习内容"
+  },
+  {
+    "id": 7,
+    "expected": "观点速览",
+    "note": "Peter Yang 中国两周旅行感想，推荐产品人访问，属个人旅行观察，无具体可用的技术或产品信息"
+  },
+  {
+    "id": 23,
+    "expected": "观点速览",
+    "note": "Matt Turck 认为 Claude Cowork 路线图只做一个月，是经营理念分享，无具体产品功能信息"
+  },
+  {
+    "id": 27,
+    "expected": "观点速览",
+    "note": "Zara Zhang 提倡非功利地 'play' AI，是个人观点/感想，无具体技术内容"
+  },
+  {
+    "id": 90,
+    "expected": "观点速览",
+    "note": "Kevin Weil 宣布离开 OpenAI，属个人动态/离职感言，无可学习信息"
+  },
+  {
+    "id": 17,
+    "expected": "观点速览",
+    "note": "Rauch 一句话：'The software factory is the product'，纯观点，无任何具体信息"
+  },
+  {
+    "id": 68,
+    "expected": "观点速览",
+    "note": "Zara Zhang 分享最有价值的三件事（深谈/深读/深度玩AI），是个人生活观点，无具体技术内容"
+  },
+  {
+    "id": 107,
+    "expected": "观点速览",
+    "note": "Zara Zhang '写作不等于生成文本' 的观点，是洞察/感想，无可操作信息"
+  },
+  {
+    "id": 15,
+    "expected": "观点速览",
+    "note": "Amjad 提议 GitHub 应显示开源包安全算力投入指标，是尚未存在的设想，非已有工具/方法"
+  },
+  {
+    "id": 100,
+    "expected": "观点速览",
+    "note": "Aaron Levie 长篇分析软件无头化趋势和收入模式转变，全为预测/观点，无具体实现方案"
+  },
+  {
+    "id": 26,
+    "expected": "观点速览",
+    "note": "Zara Zhang '用HTML做幻灯片后就回不去了'，仅提及 AnyGenIO 工具名，无使用方法或具体技巧"
+  }
+]

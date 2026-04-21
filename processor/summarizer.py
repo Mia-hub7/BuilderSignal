@@ -2,14 +2,20 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import re
 import logging
 from database import get_session, RawContent, Summary, Builder
-from processor.claude_client import call_llm
+from processor.claude_client import classify, summarize, translate
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
 BATCH_SIZE = 100
+SHORT_TEXT_THRESHOLD = 30  # 去除 URL 后低于此字符数 → 直接存原文，不调 summarize
+
+
+def _text_without_urls(raw_text: str) -> str:
+    return re.sub(r'https?://\S+', '', raw_text or '').strip()
 
 
 def run_summarizer() -> dict:
@@ -34,30 +40,38 @@ def run_summarizer() -> dict:
                     builder_name = builder.name
                     builder_bio = builder.bio or ""
 
+            raw_text = record.raw_text or ""
+
             try:
-                result = call_llm(builder_name, record.source, record.raw_text or "", builder_bio)
+                category = classify(builder_name, record.source, raw_text, builder_bio)
+
+                # 短内容：英文原文 + 翻译成中文，不调 summarize 避免 LLM 扩充编造
+                if len(_text_without_urls(raw_text)) < SHORT_TEXT_THRESHOLD:
+                    summary_en = raw_text
+                    summary_zh = translate(raw_text)
+                    log.info(f"Short content id={record.id} ({builder_name}) → 翻译原文, category={category}")
+                else:
+                    result = summarize(builder_name, record.source, raw_text, category, builder_bio)
+                    summary_zh = result.get("summary_zh", "")
+                    summary_en = result.get("summary_en", "")
+
             except Exception as e:
                 log.error(f"LLM call failed for raw_content id={record.id}: {e}")
                 failed += 1
                 continue
 
-            if result.get("skip"):
-                record.is_processed = 2
-                log.info(f"Skipped id={record.id} ({builder_name}) → off_topic")
-                continue
-
             session.add(Summary(
                 raw_content_id=record.id,
                 builder_id=record.builder_id,
-                category_tag=result.get("category", ""),
-                summary_zh=result.get("summary_zh", ""),
-                summary_en=result.get("summary_en", ""),
+                category_tag=category,
+                summary_zh=summary_zh,
+                summary_en=summary_en,
                 original_url=record.url,
                 published_at=record.published_at,
             ))
             record.is_processed = 1
             processed += 1
-            log.info(f"Summarized id={record.id} ({builder_name}) → {result.get('category')}")
+            log.info(f"Processed id={record.id} ({builder_name}) → {category}")
 
     log.info(f"Done — processed:{processed} failed:{failed}")
     return {"processed": processed, "failed": failed}

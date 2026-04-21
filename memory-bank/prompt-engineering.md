@@ -315,7 +315,8 @@ Builder: {builder_name}（{builder_bio}）
 | V1.0 | （沿用 V0.2 摘要指令，无改动） | — | 本轮迭代专注分类标签，摘要部分未动 | 待 Round 2 展开 |
 | V1.1 | 独立调用；Builder 视角要求；category 注入；temperature=0.4 | 合并调用无法独立调优摘要质量 | 摘要单独一次调用（temperature=0.4）；system prompt 明确视角/一致性/密度要求；user prompt 注入 category 实现类别感知摘要 | 架构解耦，temperature 提升流畅度，category 注入使摘要侧重与分类一致 |
 | V2.0 | 【最重要】严禁第三人称；system prompt 加"禁止扩充"规则 | SUM-001：9/15条推文摘要被改成第三人称（"XX认为/指出"）；SUM-002：3/15条原文信息不足，摘要在编造/猜测内容 | ① system prompt 明确禁令：严禁"XX认为/指出/表示/该作者"，必须用"我/我们"；② 新增"禁止扩充"规则：原文有多少信息就写多少 | 已废弃，被 V2.1 取代 |
-| V2.1 | 短内容改用 `translate()` 代替 skip；与分类 prompt 同步去掉 off_topic | V2.0 直接 skip 短内容导致这些条目无摘要无翻译，Feed 空白；off_topic 逻辑移出分类层后摘要层也需对应简化 | ① 去除 `is_processed=2` 的 skip 逻辑；② 短内容（去URL后 < 30字符）改为：直接存英文原文 + 调 `translate()` 生成中文；③ 新增独立 `TRANSLATE_SYSTEM`/`TRANSLATE_USER` prompt | ✅ 生产运行中（2026-04-19），全库100条重跑验证通过 |
+| V2.1 | 短内容改用 `translate()` 代替 skip；与分类 prompt 同步去掉 off_topic | V2.0 直接 skip 短内容导致这些条目无摘要无翻译，Feed 空白；off_topic 逻辑移出分类层后摘要层也需对应简化 | ① 去除 `is_processed=2` 的 skip 逻辑；② 短内容（去URL后 < 30字符）改为：直接存英文原文 + 调 `translate()` 生成中文；③ 新增独立 `TRANSLATE_SYSTEM`/`TRANSLATE_USER` prompt | ✅ 已归档，被 V3.0 取代 |
+| V3.0 | 长度自适应规则 + 播客视角规则；播客截断放宽至8000字符 | 播客转录65K字符截断到4000只读到前10%；长播客摘要只有3句不足以覆盖核心内容；播客嘉宾视角与节目方视角混淆 | ① SUMMARIZE_SYSTEM 新增"长度自适应"规则（< 200字写2-3句，> 500字写4-6句）；② SUMMARIZE_SYSTEM 新增"播客视角"规则（以节目整体核心议题为准）；③ `summarize()` 函数对 podcast 截断放宽至8000字符，max_tokens 提升至768 | ✅ 生产运行中（2026-04-20），播客样本评分 +3分（9→10，10→12） |
 
 #### 1.B.2 历史版本完整内容
 
@@ -333,7 +334,44 @@ Builder: {builder_name}（{builder_bio}）
 只返回 JSON，不要包含任何其他内容。
 ```
 
-##### V2.1（当前生产，2026-04-19）
+##### V3.0（当前生产，2026-04-20）
+
+**SUMMARIZE_SYSTEM**
+```
+你是 BuilderSignal 的摘要引擎。
+你必须只返回合法的 JSON，不含任何 Markdown 或额外说明。
+
+摘要要求：
+- 【最重要】必须用第一人称写作，严禁出现"XX认为"、"XX指出"、"XX表示"、"该作者"等第三人称表述。原文是"I think..."就用"我认为..."，原文是"We built..."就用"我们构建了..."
+- 【禁止扩充】原文有多少信息就写多少，严禁推测、脑补或扩展原文未提及的内容
+- 提炼核心观点，不复述原文，不堆砌套话
+- 中英文信息完全一致，不能出现一方有另一方没有的内容
+- 【长度自适应】原文不足 200 字写 2-3 句；原文超过 500 字（播客/博客长文）可写 4-6 句，确保关键信息不遗漏
+- 【播客视角】若平台为 podcast，以节目整体核心议题为准，提炼全期最重要的 4-6 个观点，不只采用某位嘉宾的单一视角
+```
+
+**SUMMARIZE_USER**（与 V2.1 一致，无变更）
+```
+Builder: {builder_name}（{builder_bio}）
+平台: {source}
+分类: {category}
+内容:
+{raw_text}
+
+只返回 JSON：
+{
+  "summary_zh": "中文摘要，提炼核心观点",
+  "summary_en": "English summary, extracting key insights"
+}
+```
+
+**参数：**
+- 非播客：`temperature=0.4`，`max_tokens=512`，截断 `raw_text[:4000]`
+- 播客（source="podcast"）：`temperature=0.4`，`max_tokens=768`，截断 `raw_text[:8000]`
+
+---
+
+##### V2.1（归档，2026-04-19）
 
 **SUMMARIZE_SYSTEM**
 ```

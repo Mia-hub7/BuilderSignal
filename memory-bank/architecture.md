@@ -88,8 +88,8 @@ BuilderSignal/
 │
 ├── processor/
 │   ├── __init__.py
-│   ├── claude_client.py # Claude API 封装：call_claude()，启用 Prompt Caching，返回解析后的 dict
-│   └── summarizer.py    # 批量读取 raw_content(is_processed=0)，调用 Claude，写入 summaries 表
+│   ├── claude_client.py # LLM API 封装（豆包/火山引擎，OpenAI 兼容协议），返回解析后的 dict
+│   └── summarizer.py    # 批量读取 raw_content(is_processed=0)，调用 LLM，写入 summaries 表
 │
 ├── jobs/
 │   ├── __init__.py
@@ -171,9 +171,39 @@ config（key-value）
 
 ---
 
-## 7. 架构更新记录
+## 7. 数据操作安全规范
+
+### 7.1 全库重跑规范
+
+**触发场景：** 修改 Prompt 或 summarizer 逻辑后，需要用新版本重新处理所有历史数据。
+
+**正确流程：**
+
+```
+Step 1  备份数据（必须）
+        → 导出现有摘要：python processor/regression_test.py --export
+        → 或复制数据库文件备用
+
+Step 2  抽样验证（必须）
+        → 用新 prompt 跑 10-15 条样本，与旧结果对比
+        → 确认目标问题修复，且没有引入新问题
+        → 验证通过后才执行 Step 3
+
+Step 3  全库重跑
+        → 删除 summaries 表 + 重置 raw_content.is_processed=0
+        → 运行 python processor/summarizer.py
+```
+
+**教训（2026-04-19）：**
+只做了 2 条 spot check 就直接全删重跑，没有备份旧数据。对个人工具风险可控（原始内容保留在 raw_content 表），但养成备份习惯可以避免不必要的损失。
+
+---
+
+## 8. 架构更新记录
 
 | 日期 | 版本 | 变更内容 |
 | :--- | :--- | :--- |
 | 2026-04-15 | v1.0 | 初始架构，完成项目骨架（步骤1），确立 follow-builders Feed 方案 |
 | 2026-04-16 | v1.1 | 存储层从 SQLite+Render Disk 迁移至 Supabase PostgreSQL（免费，Session Pooler 解决 IPv6）；新增 Archive 页；builders 表新增 bio 字段；Render 部署上线 |
+| 2026-04-19 | v1.2 | LLM 分类体系重设计：4类→2类（深度内容/观点速览）+off_topic；摘要 prompt 加强第一人称禁令；summarizer.py 加内容不足过滤；全库 79 条摘要用 V2.0 重新生成 |
+| 2026-04-19 | v1.3 | 去掉所有过滤逻辑，白名单内容全部展示；off_topic 分类取消；短内容（去URL后<30字符）直接存原文不调 LLM summarize，避免编造 |

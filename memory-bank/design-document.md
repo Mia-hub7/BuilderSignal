@@ -17,7 +17,7 @@
 ```
 每天早上 8:00，系统自动完成以下工作：
   1. 抓取白名单 Builder 在 X / 博客 / RSS 的最新内容
-  2. 用 Claude API 过滤噪音、生成双语结构化摘要
+  2. 用豆包大模型（火山引擎）过滤噪音、生成双语结构化摘要
   3. 按类别归类，更新 Web Dashboard 首页
 用户打开浏览器 → 看到今日摘要卡片 → 按兴趣筛选 → 点击原文溯源
 ```
@@ -30,7 +30,7 @@
 │                                                         │
 │  ┌─────────────┐    ┌──────────────┐   ┌─────────────┐ │
 │  │  Scheduler  │───▶│   Scrapers   │──▶│  Processor  │ │
-│  │ (APScheduler│    │  X API / RSS │   │ Claude API  │ │
+│  │ (APScheduler│    │  X API / RSS │   │  豆包 API   │ │
 │  │  每4小时)   │    │  Blog Crawler│   │ 摘要+分类   │ │
 │  └─────────────┘    └──────────────┘   └──────┬──────┘ │
 │                                               │        │
@@ -58,7 +58,7 @@
 | 前端 | Jinja2 + TailwindCSS | 无需前后端分离，简洁够用 |
 | 数据库 | SQLite | 单用户无需重型数据库 |
 | 定时任务 | APScheduler | 内嵌 FastAPI 进程，无需额外服务 |
-| LLM | Claude API (claude-sonnet-4-6) | 摘要生成 + 分类 + 双语翻译 |
+| LLM | 豆包大模型（火山引擎 ARK，OpenAI 兼容协议） | 摘要生成 + 分类 + 双语翻译 |
 | X 数据 | Tweepy (X API Free Tier) | 官方 API，月读取上限 500 条 |
 | RSS/博客 | feedparser + httpx + BeautifulSoup | 免费，无限制 |
 | YouTube (Phase 2) | Supadata API | 语音转文字 |
@@ -157,8 +157,8 @@ buildersignal/
 │
 ├── processor/
 │   ├── __init__.py
-│   ├── claude_client.py     # Claude API 封装（含 Prompt 模板）
-│   ├── summarizer.py        # 调用 Claude 生成双语摘要 + 分类
+│   ├── claude_client.py     # LLM API 封装（豆包/火山引擎，含 Prompt 模板）
+│   ├── summarizer.py        # 调用 LLM 生成双语摘要 + 分类
 │   └── filter.py            # 反网红过滤规则
 │
 ├── routers/
@@ -206,7 +206,7 @@ async def cleanup_job():
     await delete_old_records(days=30)
 ```
 
-### 4.3 Claude API 调用设计
+### 4.3 LLM API 调用设计（豆包/火山引擎）
 
 **Prompt 模板（summarizer）：**
 
@@ -235,7 +235,7 @@ async def cleanup_job():
 
 **调用逻辑：**
 - 批量处理，每次最多 20 条 raw_content，减少 API 调用次数
-- 启用 Claude Prompt Caching（系统提示部分缓存），降低成本
+- 系统提示固定，批量处理时重复 token 由模型侧缓存机制降低成本
 
 ---
 
@@ -370,8 +370,10 @@ Builder 追踪列表
 ```env
 # .env 文件（不提交 Git）
 
-# Claude API
-ANTHROPIC_API_KEY=sk-ant-...
+# 豆包 API（火山引擎 ARK）
+LLM_API_KEY=...
+LLM_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+LLM_MODEL=ep-xxx  # 火山引擎推理接入点 ID
 
 # X (Twitter) API
 X_API_KEY=...
@@ -431,7 +433,7 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 - [ ] 数据库 Schema 创建与初始数据导入（Builder 白名单）
 - [ ] X Scraper（Tweepy，抓取白名单 Builder 推文）
 - [ ] RSS/Blog Scraper（feedparser + BeautifulSoup）
-- [ ] Claude API 摘要处理器（双语摘要 + 分类打标）
+- [ ] LLM 摘要处理器（豆包，双语摘要 + 分类打标）
 - [ ] APScheduler 定时任务（每4小时抓取 + 每日08:00 Digest）
 - [ ] Feed 首页（卡片展示 + 分类筛选）
 - [ ] Render 部署上线
