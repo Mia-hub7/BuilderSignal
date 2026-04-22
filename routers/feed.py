@@ -36,16 +36,16 @@ def _resolve_display_date() -> tuple[datetime, str]:
             start, end = _day_range_utc(candidate)
             count = (
                 session.query(Summary)
-                .filter(Summary.created_at >= start, Summary.created_at < end, Summary.is_visible == 1)
+                .filter(Summary.published_at >= start, Summary.published_at < end, Summary.is_visible == 1)
                 .count()
             )
             if count > 0:
                 return candidate, candidate.strftime("%Y-%m-%d")
         # fallback: most recent available day
         latest = (
-            session.query(Summary.created_at)
+            session.query(Summary.published_at)
             .filter(Summary.is_visible == 1)
-            .order_by(Summary.created_at.desc())
+            .order_by(Summary.published_at.desc())
             .first()
         )
         if latest:
@@ -78,7 +78,7 @@ def _query_items(category: str, beijing_date: datetime) -> list[dict]:
     with get_session() as session:
         q = (
             session.query(Summary)
-            .filter(Summary.created_at >= start, Summary.created_at < end, Summary.is_visible == 1)
+            .filter(Summary.published_at >= start, Summary.published_at < end, Summary.is_visible == 1)
         )
         if category and category != "全部":
             q = q.filter(Summary.category_tag == category)
