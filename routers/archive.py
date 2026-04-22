@@ -60,8 +60,8 @@ def _query_by_date(date_str: str, category: str) -> list[dict]:
         q = (
             session.query(Summary)
             .filter(
-                Summary.created_at >= day_start_utc,
-                Summary.created_at < day_end_utc,
+                Summary.published_at >= day_start_utc,
+                Summary.published_at < day_end_utc,
                 Summary.is_visible == 1,
             )
         )
@@ -98,7 +98,7 @@ def _available_dates() -> list[str]:
     """Return distinct dates (YYYY-MM-DD in Beijing time) that have summaries, newest first."""
     with get_session() as session:
         rows = (
-            session.query(Summary.created_at)
+            session.query(Summary.published_at)
             .filter(Summary.is_visible == 1)
             .all()
         )
