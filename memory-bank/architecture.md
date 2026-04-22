@@ -207,3 +207,4 @@ Step 3  全库重跑
 | 2026-04-16 | v1.1 | 存储层从 SQLite+Render Disk 迁移至 Supabase PostgreSQL（免费，Session Pooler 解决 IPv6）；新增 Archive 页；builders 表新增 bio 字段；Render 部署上线 |
 | 2026-04-19 | v1.2 | LLM 分类体系重设计：4类→2类（深度内容/观点速览）+off_topic；摘要 prompt 加强第一人称禁令；summarizer.py 加内容不足过滤；全库 79 条摘要用 V2.0 重新生成 |
 | 2026-04-19 | v1.3 | 去掉所有过滤逻辑，白名单内容全部展示；off_topic 分类取消；短内容（去URL后<30字符）直接存原文不调 LLM summarize，避免编造 |
+| 2026-04-22 | v1.4 | 修复三个线上问题：① fetch.py 移除 generatedAt 早退逻辑（upstream 未更新时会跳过整个 fetch，导致页面显示昨日内容）；② config.py 移除启动时 LLM_API_KEY 强制校验（阻塞 cleanup 等不需要 LLM 的脚本）；③ summarizer.py 改为每条记录独立 session commit（原长事务导致 Supabase 连接超时后全部回滚，日志显示成功但数据库无变化） |
