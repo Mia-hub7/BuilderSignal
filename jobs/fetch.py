@@ -52,10 +52,10 @@ def run_fetch(force: bool = False):
     upstream = _get_upstream_generated_at()
     if upstream:
         saved = _get_saved_generated_at()
-        if not force and upstream == saved:
-            print(f"{_ts()} Feed not updated (generatedAt={upstream}), skipping.")
-            return {"skipped": True}
-        print(f"{_ts()} Feed updated: {saved} → {upstream}")
+        if upstream == saved:
+            print(f"{_ts()} generatedAt unchanged ({upstream}), but fetching anyway to catch any new content.")
+        else:
+            print(f"{_ts()} Feed updated: {saved} → {upstream}")
     else:
         print(f"{_ts()} Could not read generatedAt, proceeding anyway.")
 
