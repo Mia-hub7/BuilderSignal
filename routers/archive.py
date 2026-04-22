@@ -45,19 +45,23 @@ def _build_items(summaries, session) -> list[dict]:
     return items
 
 
+TZ8 = timezone(timedelta(hours=8))
+
+
 def _query_by_date(date_str: str, category: str) -> list[dict]:
     try:
-        day = datetime.strptime(date_str, "%Y-%m-%d")
+        day_bj = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=TZ8)
     except ValueError:
         return []
-    day_end = day + timedelta(days=1)
+    day_start_utc = day_bj.astimezone(timezone.utc).replace(tzinfo=None)
+    day_end_utc = (day_bj + timedelta(days=1)).astimezone(timezone.utc).replace(tzinfo=None)
 
     with get_session() as session:
         q = (
             session.query(Summary)
             .filter(
-                Summary.created_at >= day,
-                Summary.created_at < day_end,
+                Summary.created_at >= day_start_utc,
+                Summary.created_at < day_end_utc,
                 Summary.is_visible == 1,
             )
         )
@@ -91,8 +95,7 @@ def _query_by_keyword(keyword: str, category: str) -> list[dict]:
 
 
 def _available_dates() -> list[str]:
-    """Return distinct dates (YYYY-MM-DD) that have summaries, newest first."""
-    tz8 = timezone(timedelta(hours=8))
+    """Return distinct dates (YYYY-MM-DD in Beijing time) that have summaries, newest first."""
     with get_session() as session:
         rows = (
             session.query(Summary.created_at)
@@ -100,7 +103,7 @@ def _available_dates() -> list[str]:
             .all()
         )
     dates = sorted(
-        {r[0].strftime("%Y-%m-%d") for r in rows if r[0]},
+        {r[0].replace(tzinfo=timezone.utc).astimezone(TZ8).strftime("%Y-%m-%d") for r in rows if r[0]},
         reverse=True,
     )
     return dates
