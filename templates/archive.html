@@ -40,15 +40,14 @@
 
 <!-- 日期选择（搜索模式下隐藏） -->
 {% if dates and not keyword %}
-<div class="flex gap-2 mb-4 flex-wrap">
-  {% for d in dates %}
-  <a href="/archive?date={{ d }}&category={% if active_category != '全部' %}{{ active_category }}{% endif %}"
-     class="px-3 py-1.5 rounded-full text-sm font-medium transition-all
-       {% if active_date == d %}text-white shadow-md{% else %}bg-white text-slate-500 hover:text-[#6366F1] hover:shadow-sm shadow-sm{% endif %}"
-     {% if active_date == d %}style="background: linear-gradient(135deg, #6366F1, #818CF8);"{% endif %}>
-    {{ d }}
-  </a>
-  {% endfor %}
+<div class="mb-4">
+  <select
+    onchange="window.location.href='/archive?date='+this.value+'{% if active_category != '全部' %}&category={{ active_category }}{% endif %}'"
+    class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#6366F1] cursor-pointer">
+    {% for d in dates %}
+    <option value="{{ d }}" {% if active_date == d %}selected{% endif %}>{{ d }}</option>
+    {% endfor %}
+  </select>
 </div>
 {% endif %}
 
